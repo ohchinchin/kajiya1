@@ -5,21 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>鍛冶屋シミュレーター</title>
   
-  <!-- Tailwind CSS の読み込み -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- React と ReactDOM の読み込み -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  
-  <!-- Babel の読み込み (JSXをブラウザで動かすため) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-    }
+    body { margin: 0; font-family: sans-serif; }
+    /* スクロールバーの非表示（見た目をスッキリさせるため） */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 3px; }
   </style>
 </head>
 <body>
@@ -57,48 +52,49 @@
       magic: '魔力', mithril_dragon: '幻獣'
     };
 
+    // レシピに耐久度(durability)を追加
     const RECIPES = [
-      { id: 'iron_sword', name: '鉄の剣', reqLevel: 1, type: 'weapon', weight: 'heavy', series: 'iron', req: { iron: 2, wood: 1 }, basePower: 15, baseValue: 50 },
-      { id: 'iron_armor', name: '鉄の胸当て', reqLevel: 1, type: 'armor', weight: 'heavy', series: 'iron', req: { iron: 3, leather: 1 }, basePower: 18, baseValue: 70 },
-      { id: 'wood_wand', name: '木の杖', reqLevel: 1, type: 'weapon', weight: 'light', series: 'wood_leather', req: { wood: 2, magic_stone: 1 }, basePower: 18, baseValue: 65 },
+      { id: 'iron_sword', name: '鉄の剣', reqLevel: 1, durability: 5, type: 'weapon', weight: 'heavy', series: 'iron', req: { iron: 2, wood: 1 }, basePower: 15, baseValue: 50 },
+      { id: 'iron_armor', name: '鉄の胸当て', reqLevel: 1, durability: 5, type: 'armor', weight: 'heavy', series: 'iron', req: { iron: 3, leather: 1 }, basePower: 18, baseValue: 70 },
+      { id: 'wood_wand', name: '木の杖', reqLevel: 1, durability: 5, type: 'weapon', weight: 'light', series: 'wood_leather', req: { wood: 2, magic_stone: 1 }, basePower: 18, baseValue: 65 },
       
-      { id: 'dagger', name: '盗賊の短剣', reqLevel: 2, type: 'weapon', weight: 'light', series: 'wood_leather', req: { iron: 1, leather: 1 }, basePower: 10, baseValue: 35 },
-      { id: 'leather_armor', name: '革の鎧', reqLevel: 2, type: 'armor', weight: 'light', series: 'wood_leather', req: { leather: 3 }, basePower: 8, baseValue: 40 },
-      { id: 'wood_shield', name: '木の盾', reqLevel: 2, type: 'shield', weight: 'medium', series: 'wood_leather', req: { wood: 3 }, basePower: 8, baseValue: 30 },
+      { id: 'dagger', name: '盗賊の短剣', reqLevel: 2, durability: 5, type: 'weapon', weight: 'light', series: 'wood_leather', req: { iron: 1, leather: 1 }, basePower: 10, baseValue: 35 },
+      { id: 'leather_armor', name: '革の鎧', reqLevel: 2, durability: 5, type: 'armor', weight: 'light', series: 'wood_leather', req: { leather: 3 }, basePower: 8, baseValue: 40 },
+      { id: 'wood_shield', name: '木の盾', reqLevel: 2, durability: 5, type: 'shield', weight: 'medium', series: 'wood_leather', req: { wood: 3 }, basePower: 8, baseValue: 30 },
 
-      { id: 'iron_mace', name: '鉄のメイス', reqLevel: 3, type: 'weapon', weight: 'medium', series: 'iron', req: { iron: 2 }, basePower: 12, baseValue: 45 },
-      { id: 'hunter_bow', name: '狩人の弓', reqLevel: 3, type: 'weapon', weight: 'medium', series: 'wood_leather', req: { wood: 3, leather: 1 }, basePower: 14, baseValue: 50 },
-      { id: 'chainmail', name: 'チェインメイル', reqLevel: 4, type: 'armor', weight: 'medium', series: 'iron', req: { iron: 3 }, basePower: 14, baseValue: 60 },
-      { id: 'wood_buckler', name: '木のバックラー', reqLevel: 4, type: 'shield', weight: 'medium', series: 'wood_leather', req: { wood: 2, leather: 1 }, basePower: 6, baseValue: 25 },
-      { id: 'iron_shield', name: '鉄の大盾', reqLevel: 4, type: 'shield', weight: 'heavy', series: 'iron', req: { iron: 3 }, basePower: 10, baseValue: 40 },
+      { id: 'iron_mace', name: '鉄のメイス', reqLevel: 3, durability: 5, type: 'weapon', weight: 'medium', series: 'iron', req: { iron: 2 }, basePower: 12, baseValue: 45 },
+      { id: 'hunter_bow', name: '狩人の弓', reqLevel: 3, durability: 5, type: 'weapon', weight: 'medium', series: 'wood_leather', req: { wood: 3, leather: 1 }, basePower: 14, baseValue: 50 },
+      { id: 'chainmail', name: 'チェインメイル', reqLevel: 4, durability: 5, type: 'armor', weight: 'medium', series: 'iron', req: { iron: 3 }, basePower: 14, baseValue: 60 },
+      { id: 'wood_buckler', name: '木のバックラー', reqLevel: 4, durability: 5, type: 'shield', weight: 'medium', series: 'wood_leather', req: { wood: 2, leather: 1 }, basePower: 6, baseValue: 25 },
+      { id: 'iron_shield', name: '鉄の大盾', reqLevel: 4, durability: 5, type: 'shield', weight: 'heavy', series: 'iron', req: { iron: 3 }, basePower: 10, baseValue: 40 },
 
-      { id: 'steel_sword', name: '鋼の長剣', reqLevel: 5, type: 'weapon', weight: 'heavy', series: 'steel', req: { steel: 2, hard_leather: 1 }, basePower: 45, baseValue: 200 },
-      { id: 'steel_shield', name: '鋼鉄の盾', reqLevel: 5, type: 'shield', weight: 'heavy', series: 'steel', req: { steel: 3 }, basePower: 30, baseValue: 150 },
-      { id: 'mage_robe', name: '魔術師のローブ', reqLevel: 5, type: 'armor', weight: 'light', series: 'magic', req: { hard_leather: 2, magic_stone: 1 }, basePower: 30, baseValue: 190 },
+      { id: 'steel_sword', name: '鋼の長剣', reqLevel: 5, durability: 8, type: 'weapon', weight: 'heavy', series: 'steel', req: { steel: 2, hard_leather: 1 }, basePower: 45, baseValue: 200 },
+      { id: 'steel_shield', name: '鋼鉄の盾', reqLevel: 5, durability: 8, type: 'shield', weight: 'heavy', series: 'steel', req: { steel: 3 }, basePower: 30, baseValue: 150 },
+      { id: 'mage_robe', name: '魔術師のローブ', reqLevel: 5, durability: 8, type: 'armor', weight: 'light', series: 'magic', req: { hard_leather: 2, magic_stone: 1 }, basePower: 30, baseValue: 190 },
 
-      { id: 'steel_rapier', name: '鋼のレイピア', reqLevel: 6, type: 'weapon', weight: 'medium', series: 'steel', req: { steel: 2, fine_wood: 1 }, basePower: 40, baseValue: 180 },
-      { id: 'spirit_wand', name: '精霊の杖', reqLevel: 6, type: 'weapon', weight: 'light', series: 'magic', req: { fine_wood: 2, magic_stone: 2 }, basePower: 55, baseValue: 250 },
-      { id: 'steel_scale', name: '鋼の鱗鎧', reqLevel: 6, type: 'armor', weight: 'medium', series: 'steel', req: { steel: 3, hard_leather: 2 }, basePower: 42, baseValue: 240 },
+      { id: 'steel_rapier', name: '鋼のレイピア', reqLevel: 6, durability: 8, type: 'weapon', weight: 'medium', series: 'steel', req: { steel: 2, fine_wood: 1 }, basePower: 40, baseValue: 180 },
+      { id: 'spirit_wand', name: '精霊の杖', reqLevel: 6, durability: 8, type: 'weapon', weight: 'light', series: 'magic', req: { fine_wood: 2, magic_stone: 2 }, basePower: 55, baseValue: 250 },
+      { id: 'steel_scale', name: '鋼の鱗鎧', reqLevel: 6, durability: 8, type: 'armor', weight: 'medium', series: 'steel', req: { steel: 3, hard_leather: 2 }, basePower: 42, baseValue: 240 },
 
-      { id: 'assassin_dagger', name: '暗殺者の刃', reqLevel: 7, type: 'weapon', weight: 'light', series: 'magic', req: { steel: 1, magic_stone: 2 }, basePower: 38, baseValue: 220 },
-      { id: 'cleric_mace', name: '司祭のメイス', reqLevel: 7, type: 'weapon', weight: 'medium', series: 'magic', req: { fine_wood: 1, steel: 1, magic_stone: 1 }, basePower: 40, baseValue: 200 },
-      { id: 'steel_armor', name: '鋼の重鎧', reqLevel: 7, type: 'armor', weight: 'heavy', series: 'steel', req: { steel: 4, hard_leather: 1 }, basePower: 50, baseValue: 280 },
+      { id: 'assassin_dagger', name: '暗殺者の刃', reqLevel: 7, durability: 8, type: 'weapon', weight: 'light', series: 'magic', req: { steel: 1, magic_stone: 2 }, basePower: 38, baseValue: 220 },
+      { id: 'cleric_mace', name: '司祭のメイス', reqLevel: 7, durability: 8, type: 'weapon', weight: 'medium', series: 'magic', req: { fine_wood: 1, steel: 1, magic_stone: 1 }, basePower: 40, baseValue: 200 },
+      { id: 'steel_armor', name: '鋼の重鎧', reqLevel: 7, durability: 8, type: 'armor', weight: 'heavy', series: 'steel', req: { steel: 4, hard_leather: 1 }, basePower: 50, baseValue: 280 },
 
-      { id: 'magic_ring', name: '魔力の指輪', reqLevel: 8, type: 'shield', weight: 'light', series: 'magic', req: { magic_stone: 3 }, basePower: 25, baseValue: 280 },
-      { id: 'holy_amulet', name: '聖なる護符', reqLevel: 8, type: 'shield', weight: 'medium', series: 'magic', req: { fine_wood: 1, magic_stone: 2 }, basePower: 22, baseValue: 260 },
+      { id: 'magic_ring', name: '魔力の指輪', reqLevel: 8, durability: 8, type: 'shield', weight: 'light', series: 'magic', req: { magic_stone: 3 }, basePower: 25, baseValue: 280 },
+      { id: 'holy_amulet', name: '聖なる護符', reqLevel: 8, durability: 8, type: 'shield', weight: 'medium', series: 'magic', req: { fine_wood: 1, magic_stone: 2 }, basePower: 22, baseValue: 260 },
 
-      { id: 'mithril_sword', name: 'ミスリルブレード', reqLevel: 9, type: 'weapon', weight: 'heavy', series: 'mithril_dragon', req: { mithril: 3, dragon_scale: 1 }, basePower: 120, baseValue: 800 },
-      { id: 'dragon_dagger', name: '竜牙の短剣', reqLevel: 9, type: 'weapon', weight: 'light', series: 'mithril_dragon', req: { dragon_scale: 2, mithril: 1 }, basePower: 100, baseValue: 750 },
-      { id: 'mithril_shield', name: 'ミスリルの大盾', reqLevel: 9, type: 'shield', weight: 'heavy', series: 'mithril_dragon', req: { mithril: 4 }, basePower: 90, baseValue: 600 },
+      { id: 'mithril_sword', name: 'ミスリルブレード', reqLevel: 9, durability: 12, type: 'weapon', weight: 'heavy', series: 'mithril_dragon', req: { mithril: 3, dragon_scale: 1 }, basePower: 120, baseValue: 800 },
+      { id: 'dragon_dagger', name: '竜牙の短剣', reqLevel: 9, durability: 12, type: 'weapon', weight: 'light', series: 'mithril_dragon', req: { dragon_scale: 2, mithril: 1 }, basePower: 100, baseValue: 750 },
+      { id: 'mithril_shield', name: 'ミスリルの大盾', reqLevel: 9, durability: 12, type: 'shield', weight: 'heavy', series: 'mithril_dragon', req: { mithril: 4 }, basePower: 90, baseValue: 600 },
 
-      { id: 'mithril_rapier', name: 'ミスリルレイピア', reqLevel: 10, type: 'weapon', weight: 'medium', series: 'mithril_dragon', req: { mithril: 2, fine_wood: 1, high_magic_stone: 1 }, basePower: 110, baseValue: 780 },
-      { id: 'sage_robe', name: '賢者の衣', reqLevel: 10, type: 'armor', weight: 'light', series: 'mithril_dragon', req: { dragon_scale: 1, high_magic_stone: 2 }, basePower: 90, baseValue: 900 },
+      { id: 'mithril_rapier', name: 'ミスリルレイピア', reqLevel: 10, durability: 12, type: 'weapon', weight: 'medium', series: 'mithril_dragon', req: { mithril: 2, fine_wood: 1, high_magic_stone: 1 }, basePower: 110, baseValue: 780 },
+      { id: 'sage_robe', name: '賢者の衣', reqLevel: 10, durability: 12, type: 'armor', weight: 'light', series: 'mithril_dragon', req: { dragon_scale: 1, high_magic_stone: 2 }, basePower: 90, baseValue: 900 },
 
-      { id: 'sage_wand', name: '賢者の大杖', reqLevel: 11, type: 'weapon', weight: 'light', series: 'mithril_dragon', req: { fine_wood: 1, high_magic_stone: 3 }, basePower: 150, baseValue: 1000 },
-      { id: 'mithril_chain', name: 'ミスリルチェイン', reqLevel: 11, type: 'armor', weight: 'medium', series: 'mithril_dragon', req: { mithril: 3, dragon_scale: 1, hard_leather: 1 }, basePower: 120, baseValue: 1100 },
+      { id: 'sage_wand', name: '賢者の大杖', reqLevel: 11, durability: 12, type: 'weapon', weight: 'light', series: 'mithril_dragon', req: { fine_wood: 1, high_magic_stone: 3 }, basePower: 150, baseValue: 1000 },
+      { id: 'mithril_chain', name: 'ミスリルチェイン', reqLevel: 11, durability: 12, type: 'armor', weight: 'medium', series: 'mithril_dragon', req: { mithril: 3, dragon_scale: 1, hard_leather: 1 }, basePower: 120, baseValue: 1100 },
 
-      { id: 'dragon_armor', name: 'ドラゴンスケイル', reqLevel: 12, type: 'armor', weight: 'heavy', series: 'mithril_dragon', req: { dragon_scale: 4, mithril: 1 }, basePower: 140, baseValue: 1200 },
-      { id: 'sage_amulet', name: '賢者の宝珠', reqLevel: 12, type: 'shield', weight: 'light', series: 'mithril_dragon', req: { high_magic_stone: 3, dragon_scale: 1 }, basePower: 80, baseValue: 900 },
+      { id: 'dragon_armor', name: 'ドラゴンスケイル', reqLevel: 12, durability: 12, type: 'armor', weight: 'heavy', series: 'mithril_dragon', req: { dragon_scale: 4, mithril: 1 }, basePower: 140, baseValue: 1200 },
+      { id: 'sage_amulet', name: '賢者の宝珠', reqLevel: 12, durability: 12, type: 'shield', weight: 'light', series: 'mithril_dragon', req: { high_magic_stone: 3, dragon_scale: 1 }, basePower: 80, baseValue: 900 },
     ];
 
     const ENCHANTS = [
@@ -108,24 +104,21 @@
       { id: 'ice', name: '氷の', powerMult: 1.5, valueMult: 1.5, weight: 15 },
       { id: 'master', name: '名工の', powerMult: 2.0, valueMult: 2.5, weight: 5 },
       { id: 'cursed', name: '呪われた', powerMult: 2.5, valueMult: 0.5, weight: 5 },
+      { id: 'divine', name: '神がかりの', powerMult: 3.0, valueMult: 4.0, weight: 0 }, // 伝説の炉専用
     ];
 
-    const INITIAL_ADVENTURERS = [
-      { id: 'adv1', name: 'アレン', class: '戦士', baseClass: '戦士', basePower: 10, money: 180, trust: 20, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '村の自警団上がり。正義感は強いが、少しおっちょこちょい。剣の腕はまだまだだが、ガッツだけは誰にも負けない。' },
-      { id: 'adv2', name: 'セリア', class: '盗賊', baseClass: '盗賊', basePower: 12, money: 150, trust: 10, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: 'スラム街で育った身軽な少女。生きるために短剣の扱いを覚えた。他人をあまり信用しないが、根は優しい。' },
-      { id: 'adv3', name: 'ルーク', class: '魔法使い', baseClass: '魔法使い', basePower: 5, money: 220, trust: 30, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '魔術学院を中退した落ちこぼれ。小難しい理論より実践を重んじ、ダンジョンでの一攫千金を夢見ている。' },
-      { id: 'adv4', name: 'ジャン', class: '剣士', baseClass: '剣士', basePower: 15, money: 200, trust: 15, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '没落貴族の三男坊。家名復興の資金を稼ぐためにダンジョンに潜る。礼儀正しいが、どこか世間知らず。' },
-    ];
-
-    const RESERVE_ADVENTURERS = [
-      { id: 'adv5', name: 'マリア', class: '僧侶', baseClass: '僧侶', basePower: 12, money: 250, trust: 0, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '癒やしの奇跡を修めた心優しきシスター。教会の教えよりも目の前の命を救うため、自ら危険なダンジョンへ向かう。' },
-      { id: 'adv6', name: 'ガレス', class: '戦士', baseClass: '戦士', basePower: 30, money: 400, trust: 0, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '歴戦の傭兵。顔の大きな傷跡が激闘を物語っている。酒と強敵を何より愛する豪快な男。' },
-      { id: 'adv7', name: 'ミア', class: '盗賊', baseClass: '盗賊', basePower: 25, money: 350, trust: 0, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '暗殺ギルドから抜け出した抜け忍。追手から逃れつつ日銭を稼ぐ。気配を消すことにおいて彼女の右に出る者はいない。' },
-      { id: 'adv8', name: 'エレーナ', class: '魔法使い', baseClass: '魔法使い', basePower: 20, money: 500, trust: 0, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '古代魔法の探求者。遺跡の奥深くに眠る魔道書を求め、ダンジョンを渡り歩く。極度の活字中毒。' },
-      { id: 'adv9', name: 'アーサー', class: '剣士', baseClass: '剣士', basePower: 40, money: 600, trust: 0, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '主君を失った流浪の騎士。名剣を探し求めて各地を放浪している。その剣筋は美しく、そして致命的。' },
-      { id: 'adv10', name: 'バルド', class: '戦士', baseClass: '戦士', basePower: 60, money: 800, trust: 0, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '「竜殺し」の異名を持つ伝説級の重戦士。己の力のみを信じ、より強大な武具を常に渇望している。' },
-      { id: 'adv11', name: 'シルヴィア', class: '僧侶', baseClass: '僧侶', basePower: 50, money: 900, trust: 0, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '教会の異端審問官。魔に堕ちた者を狩るためだけに生きている。冷徹で容赦がなく、狂信的。' },
-      { id: 'adv12', name: 'レオ', class: '剣士', baseClass: '剣士', basePower: 70, money: 1200, trust: 0, isDead: false, equips: { weapon: null, armor: null, shield: null }, aliveDays: 0, flavor: '天賦の才を持つ天才剣士。退屈しのぎにダンジョンの最深層へと足を踏み入れる。本気を出したところを誰も見たことがない。' },
+    const ADVENTURER_NAMES = ["アレン", "セリア", "ルーク", "ジャン", "マリア", "ガレス", "ミア", "エレーナ", "アーサー", "バルド", "シルヴィア", "レオ", "カイト", "リナ", "ゼノン", "フレイヤ", "ロイド", "アイシャ", "クロエ", "ノア", "レイ", "カレン"];
+    
+    const FLAVOR_TEXTS = [
+      "田舎村から一攫千金を夢見てやってきた若者。",
+      "スラム街出身で、生き抜くための術は全て裏路地で学んだ。",
+      "かつては名門貴族だったが、没落し今は日銭を稼ぐ日々。",
+      "知識欲の塊で、未知の魔物や古代遺跡に目がない。",
+      "過去の記憶を失っており、手がかりを求めてダンジョンに潜る。",
+      "家族を養うため、危険を承知で剣を取った心優しき戦士。",
+      "ただ強者と戦うことだけを求める戦闘狂。",
+      "ある目的のために莫大な資金を必要としているらしい。",
+      "教会からの密命を帯びているという噂だが、本人は語らない。"
     ];
 
     const RANDOM_EVENTS = [
@@ -139,6 +132,32 @@
 
     // --- ユーティリティ関数 ---
     const getNextExp = (level) => Math.floor(20 * Math.pow(1.5, level - 1));
+
+    // ギルド投資によるボーナスを加算して冒険者を生成
+    const generateAdventurer = (currentDay, guildLvl) => {
+      const name = ADVENTURER_NAMES[Math.floor(Math.random() * ADVENTURER_NAMES.length)];
+      const baseClasses = ['戦士', '剣士', '僧侶', '盗賊', '魔法使い'];
+      const advClass = baseClasses[Math.floor(Math.random() * baseClasses.length)];
+      const flavor = FLAVOR_TEXTS[Math.floor(Math.random() * FLAVOR_TEXTS.length)];
+      
+      const guildBonus = (guildLvl - 1) * 8; // ギルド投資によるベース威力底上げ
+      const basePower = Math.floor(Math.random() * 10) + 5 + Math.floor(currentDay / 2) + guildBonus;
+      const money = 100 + Math.floor(Math.random() * 100) + (currentDay * 10);
+      
+      return {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        name: name,
+        class: advClass,
+        baseClass: advClass,
+        basePower: basePower,
+        money: money,
+        trust: 10 + Math.floor(Math.random() * 15),
+        isDead: false,
+        equips: { weapon: null, armor: null, shield: null },
+        aliveDays: 0,
+        flavor: flavor
+      };
+    };
 
     const generateQuest = (currentCraftLvl) => {
       const availableRecipes = RECIPES.filter(r => r.reqLevel <= currentCraftLvl + 1);
@@ -160,17 +179,20 @@
       return Math.floor(300 * Math.pow(1.4, taxPeriod - 1));
     };
 
+    // 耐久度によるペナルティを計算に含める
     const calcEquipPower = (advClass, item) => {
       if (!item) return 0;
+      if (item.durability <= 0) return Math.floor(item.power * 0.1); // 破損時は威力10%
+
       const optimalWeight = CLASS_DATA[advClass].weight;
       return item.weight === optimalWeight ? item.power : Math.floor(item.power * 0.5);
     };
 
     const getSeriesBonus = (equips) => {
       const seriesCount = {};
-      if (equips.weapon) seriesCount[equips.weapon.series] = (seriesCount[equips.weapon.series] || 0) + 1;
-      if (equips.armor) seriesCount[equips.armor.series] = (seriesCount[equips.armor.series] || 0) + 1;
-      if (equips.shield) seriesCount[equips.shield.series] = (seriesCount[equips.shield.series] || 0) + 1;
+      if (equips.weapon && equips.weapon.durability > 0) seriesCount[equips.weapon.series] = (seriesCount[equips.weapon.series] || 0) + 1;
+      if (equips.armor && equips.armor.durability > 0) seriesCount[equips.armor.series] = (seriesCount[equips.armor.series] || 0) + 1;
+      if (equips.shield && equips.shield.durability > 0) seriesCount[equips.shield.series] = (seriesCount[equips.shield.series] || 0) + 1;
 
       let activeSeries = null;
       let multiplier = 1.0;
@@ -202,7 +224,6 @@
       };
     };
 
-    // ディープコピー用関数
     const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
     // --- アイコン ---
@@ -212,8 +233,9 @@
     const IconUser = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>;
     const IconUpgrade = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-8m0 0V4m0 8h8m-8 0H4"></path><path d="M12 4l-4 4m4-4l4 4"></path></svg>;
     const IconLog = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
-    const IconSave = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
     const IconQuest = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 18v-6"></path><circle cx="12" cy="15" r="3"></circle></svg>;
+    const IconDealer = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>;
+    const IconSave = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
 
     // --- 子コンポーネント (クエストカード) ---
     const QuestCard = ({ quest, inventory, onAbandon, onComplete }) => {
@@ -239,19 +261,12 @@
                 + {MATERIALS[quest.rewardMat].name} x{quest.rewardMatAmt}
               </div>
             </div>
-            
             {availableItems.length > 0 ? (
               <div className="mb-4">
                 <p className="text-xs text-gray-500 mb-2">納品するアイテムを選択:</p>
-                <select 
-                  className="w-full p-2 border rounded text-sm bg-white"
-                  value={selectedUid}
-                  onChange={(e) => setSelectedUid(e.target.value)}
-                >
+                <select className="w-full p-2 border rounded text-sm bg-white" value={selectedUid} onChange={(e) => setSelectedUid(e.target.value)}>
                   {availableItems.map(item => (
-                    <option key={item.uid} value={item.uid}>
-                      {item.name} (威力: {item.power})
-                    </option>
+                    <option key={item.uid} value={item.uid}>{item.name} (威力: {item.power})</option>
                   ))}
                 </select>
               </div>
@@ -259,28 +274,13 @@
               <p className="text-sm text-red-600 mb-4 bg-red-50 p-2 rounded">在庫に該当アイテムがありません。</p>
             )}
           </div>
-          
           <div className="flex gap-2 mt-auto">
-            <button 
-              onClick={() => onAbandon(quest.id)}
-              className="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 transition-colors"
-            >
-              破棄
-            </button>
-            <button 
-              onClick={() => {
-                if (selectedUid) onComplete(quest, selectedUid);
-              }}
-              disabled={!selectedUid}
-              className={`flex-1 py-2 rounded font-bold transition-colors shadow-sm ${selectedUid ? 'bg-[#3E2723] text-[#D4AF37] hover:bg-[#2c1b18]' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-            >
-              納品する
-            </button>
+            <button onClick={() => onAbandon(quest.id)} className="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 transition-colors">破棄</button>
+            <button onClick={() => { if (selectedUid) onComplete(quest, selectedUid); }} disabled={!selectedUid} className={`flex-1 py-2 rounded font-bold transition-colors shadow-sm ${selectedUid ? 'bg-[#3E2723] text-[#D4AF37] hover:bg-[#2c1b18]' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>納品する</button>
           </div>
         </div>
       );
     };
-
 
     // --- メインアプリケーション ---
     function App() {
@@ -288,18 +288,20 @@
       const [day, setDay] = useState(1);
       const [money, setMoney] = useState(1500); 
       const [fame, setFame] = useState(0); 
-      const [materials, setMaterials] = useState({ iron: 30, wood: 30, leather: 20, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0 });
+      const [materials, setMaterials] = useState({ iron: 40, wood: 40, leather: 30, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0 });
       const [inventory, setInventory] = useState([]);
       
-      const [adventurers, setAdventurers] = useState(deepCopy(INITIAL_ADVENTURERS));
-      const [reserveAdvs, setReserveAdvs] = useState(deepCopy(RESERVE_ADVENTURERS));
+      const [guildLevel, setGuildLevel] = useState(1);
+      const [adventurers, setAdventurers] = useState(() => [generateAdventurer(1, 1), generateAdventurer(1, 1), generateAdventurer(1, 1)]);
       const [logs, setLogs] = useState(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
       
       const [craftLevel, setCraftLevel] = useState(1);
       const [craftExp, setCraftExp] = useState(0);
       const [upgrades, setUpgrades] = useState({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
+      
       const [activeEvent, setActiveEvent] = useState(null);
       const [quests, setQuests] = useState([generateQuest(1), generateQuest(1), generateQuest(1)]);
+      const [vipQuest, setVipQuest] = useState({ active: false, completed: false });
       
       const [endingId, setEndingId] = useState(null);
       const [hasSaveData, setHasSaveData] = useState(false);
@@ -308,91 +310,109 @@
       const [shopSelectedItem, setShopSelectedItem] = useState(null);
       const [shopPricePct, setShopPricePct] = useState(100);
 
+      // 安全な確認用のステート
+      const [confirmLoad, setConfirmLoad] = useState(false);
+      const [confirmClear, setConfirmClear] = useState(false);
+      const [confirmReset, setConfirmReset] = useState(false);
+
       const logsEndRef = useRef(null);
 
       useEffect(() => {
         try {
-          const saved = localStorage.getItem('blacksmith_save_v7');
+          const saved = localStorage.getItem('blacksmith_save_v8');
           if (saved) setHasSaveData(true);
         } catch (e) {
-          console.warn("Storage access restricted in this environment.");
+          console.warn("Storage access restricted.");
         }
       }, []);
 
       useEffect(() => {
-        if (gameState === 'log' && logsEndRef.current) {
-          logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
+        if (gameState === 'log' && logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: "smooth" });
       }, [logs, gameState]);
 
       // --- 安全なセーブ＆ロード処理 ---
       const saveGame = () => {
         try {
-          const data = { day, money, fame, materials, inventory, adventurers, reserveAdvs, logs, upgrades, activeEvent, quests, craftLevel, craftExp };
-          localStorage.setItem('blacksmith_save_v7', JSON.stringify(data));
+          const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, activeEvent, quests, craftLevel, craftExp, guildLevel, vipQuest };
+          localStorage.setItem('blacksmith_save_v8', JSON.stringify(data));
           setHasSaveData(true);
           addLog('【記録】帳簿に現在の状況を書き留めた。(セーブ完了)');
         } catch (e) {
-          addLog('【警告】お使いのブラウザ環境ではセーブ機能が制限されています。');
+          addLog('【警告】お使いの環境ではセーブ機能が制限されています。');
         }
       };
 
-      const loadGame = () => {
-        try {
-          const dataStr = localStorage.getItem('blacksmith_save_v7');
-          if (dataStr) {
-            const data = JSON.parse(dataStr);
-            setDay(data.day);
-            setMoney(data.money);
-            setFame(data.fame || 0);
-            setMaterials(data.materials);
-            setInventory(data.inventory);
-            setAdventurers(data.adventurers);
-            setReserveAdvs(data.reserveAdvs);
-            setLogs([...data.logs, `[Day ${data.day}] 【再開】帳簿を読み返し、昨日の続きから作業を始める。(ロード完了)`]);
-            setUpgrades(data.upgrades);
-            setActiveEvent(data.activeEvent || null);
-            setCraftLevel(data.craftLevel || 1);
-            setCraftExp(data.craftExp || 0);
-            setQuests(data.quests || [generateQuest(data.craftLevel || 1), generateQuest(data.craftLevel || 1), generateQuest(data.craftLevel || 1)]);
-            setShopSelectedItem(null);
-            setGameState('menu');
+      const handleLoadClick = () => {
+        if (confirmLoad) {
+          try {
+            const dataStr = localStorage.getItem('blacksmith_save_v8');
+            if (dataStr) {
+              const data = JSON.parse(dataStr);
+              setDay(data.day);
+              setMoney(data.money);
+              setFame(data.fame || 0);
+              setMaterials(data.materials);
+              setInventory(data.inventory);
+              setAdventurers(data.adventurers);
+              setLogs([...data.logs, `[Day ${data.day}] 【再開】帳簿を読み返し、昨日の続きから作業を始める。`]);
+              setUpgrades(data.upgrades);
+              setActiveEvent(data.activeEvent || null);
+              setCraftLevel(data.craftLevel || 1);
+              setCraftExp(data.craftExp || 0);
+              setGuildLevel(data.guildLevel || 1);
+              setVipQuest(data.vipQuest || { active: false, completed: false });
+              setQuests(data.quests || [generateQuest(data.craftLevel || 1), generateQuest(data.craftLevel || 1), generateQuest(data.craftLevel || 1)]);
+              setShopSelectedItem(null);
+              setGameState('menu');
+            }
+          } catch (e) {
+            addLog('【警告】ロードに失敗しました。');
           }
-        } catch (e) {
-          addLog('【警告】お使いのブラウザ環境ではロード機能が制限されています。');
+          setConfirmLoad(false);
+        } else {
+          setConfirmLoad(true);
+          setTimeout(() => setConfirmLoad(false), 3000);
         }
       };
 
-      const clearSave = () => {
-        try {
-          localStorage.removeItem('blacksmith_save_v7');
-          setHasSaveData(false);
-          addLog('【記録】帳簿の記録をすべて破棄しました。');
-        } catch (e) {
-          // 無視
+      const handleClearClick = () => {
+        if (confirmClear) {
+          try {
+            localStorage.removeItem('blacksmith_save_v8');
+            setHasSaveData(false);
+          } catch (e) { }
+          setConfirmClear(false);
+        } else {
+          setConfirmClear(true);
+          setTimeout(() => setConfirmClear(false), 3000);
         }
       };
 
-      // --- ゲームのリセット処理 ---
-      const resetGame = () => {
-        setGameState('menu');
-        setDay(1);
-        setMoney(1500);
-        setFame(0);
-        setMaterials({ iron: 30, wood: 30, leather: 20, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0 });
-        setInventory([]);
-        setAdventurers(deepCopy(INITIAL_ADVENTURERS));
-        setReserveAdvs(deepCopy(RESERVE_ADVENTURERS));
-        setLogs(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
-        setCraftLevel(1);
-        setCraftExp(0);
-        setUpgrades({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
-        setActiveEvent(null);
-        setQuests([generateQuest(1), generateQuest(1), generateQuest(1)]);
-        setEndingId(null);
-        setSelectedAdvInfo(null);
-        setShopSelectedItem(null);
-        setShopPricePct(100);
+      const handleResetClick = () => {
+        if (confirmReset) {
+          setGameState('menu');
+          setDay(1);
+          setMoney(1500);
+          setFame(0);
+          setMaterials({ iron: 40, wood: 40, leather: 30, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0 });
+          setInventory([]);
+          setGuildLevel(1);
+          setAdventurers([generateAdventurer(1, 1), generateAdventurer(1, 1), generateAdventurer(1, 1)]);
+          setLogs(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
+          setCraftLevel(1);
+          setCraftExp(0);
+          setUpgrades({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
+          setActiveEvent(null);
+          setQuests([generateQuest(1), generateQuest(1), generateQuest(1)]);
+          setVipQuest({ active: false, completed: false });
+          setEndingId(null);
+          setSelectedAdvInfo(null);
+          setShopSelectedItem(null);
+          setConfirmReset(false);
+        } else {
+          setConfirmReset(true);
+          setTimeout(() => setConfirmReset(false), 3000);
+        }
       };
 
       // --- メインロジック ---
@@ -436,7 +456,9 @@
         }
         setMaterials(newMaterials);
 
-        const qualityRoll = Math.random() * 100 + (upgrades.forgeLevel * 10);
+        let qualityRoll = Math.random() * 100 + (upgrades.forgeLevel * 10);
+        if (vipQuest.completed) qualityRoll += 50; // 伝説の炉効果
+
         let qualityStr = "ノーマル";
         let qMultiplier = 1.0;
         
@@ -445,16 +467,18 @@
         else if (qualityRoll < 5) { qualityStr = "粗悪"; qMultiplier = 0.7; }
 
         let appliedEnchant = null;
-        const enchantChance = 10 + (upgrades.forgeLevel * 5) + (qualityStr === 'エピック' ? 30 : 0);
-        
-        if (Math.random() * 100 < enchantChance) {
-          const totalWeight = ENCHANTS.reduce((sum, e) => sum + e.weight, 0);
-          let rand = Math.random() * totalWeight;
-          for (const e of ENCHANTS) {
-            rand -= e.weight;
-            if (rand <= 0) {
-              appliedEnchant = e;
-              break;
+        if (vipQuest.completed && Math.random() * 100 < 30) {
+          // 伝説の炉専用エンチャント
+          appliedEnchant = ENCHANTS.find(e => e.id === 'divine');
+        } else {
+          const enchantChance = 10 + (upgrades.forgeLevel * 5) + (qualityStr === 'エピック' ? 30 : 0) + (vipQuest.completed ? 30 : 0);
+          if (Math.random() * 100 < enchantChance) {
+            const normalEnchants = ENCHANTS.filter(e => e.weight > 0);
+            const totalWeight = normalEnchants.reduce((sum, e) => sum + e.weight, 0);
+            let rand = Math.random() * totalWeight;
+            for (const e of normalEnchants) {
+              rand -= e.weight;
+              if (rand <= 0) { appliedEnchant = e; break; }
             }
           }
         }
@@ -473,12 +497,15 @@
           baseValue: finalValue,
           weight: recipe.weight,
           series: recipe.series,
-          type: recipe.type
+          type: recipe.type,
+          durability: recipe.durability,
+          maxDurability: recipe.durability
         };
 
         setInventory([...inventory, newItem]);
         
-        if (appliedEnchant || qualityStr === "エピック") addLog(`✨【名作誕生】炉の炎が青く輝き、${newItem.name}が打ち上がった！`);
+        if (appliedEnchant && appliedEnchant.id === 'divine') addLog(`🔆【神業】神々しい光を放つ ${newItem.name} が誕生した...!!`);
+        else if (appliedEnchant || qualityStr === "エピック") addLog(`✨【名作誕生】炉の炎が青く輝き、${newItem.name}が打ち上がった！`);
         else if (qualityStr === "粗悪") addLog(`【製作】少し叩き損ねたが、${newItem.name}が完成した。`);
         else addLog(`【製作】汗を流し、${newItem.name}を打ち上げた。`);
 
@@ -489,7 +516,6 @@
       const handleSell = (item, advId, pricePercentage) => {
         const advIndex = adventurers.findIndex(a => a.id === advId);
         if (advIndex === -1) return;
-        
         const adv = adventurers[advIndex];
         const askPrice = Math.floor(item.baseValue * (pricePercentage / 100));
         const effectiveMoney = adv.money * (1 + (upgrades.haggleLevel * 0.1));
@@ -522,11 +548,33 @@
 
         setAdventurers(newAdvs);
 
-        if (item.weight !== optimalWeight) {
-           addLog(`【売却】${adv.name}に ${askPrice}G で売れたが、「重さが合わないな…」と渋い顔をしていた。`);
-        } else {
-           addLog(`【売却】${adv.name}は「これは良い品だ！」と喜び、${askPrice}G を支払っていった。`);
+        if (item.weight !== optimalWeight) addLog(`【売却】${adv.name}に ${askPrice}G で売れたが、「重さが合わないな…」と渋い顔をしていた。`);
+        else addLog(`【売却】${adv.name}は「これは良い品だ！」と喜び、${askPrice}G を支払っていった。`);
+      };
+
+      const handleRepair = (advId, slot) => {
+        const advIndex = adventurers.findIndex(a => a.id === advId);
+        if (advIndex === -1) return;
+        const adv = adventurers[advIndex];
+        const item = adv.equips[slot];
+        if (!item || item.durability >= item.maxDurability) return;
+
+        const repairCost = Math.max(1, Math.floor((item.maxDurability - item.durability) * (item.baseValue / 20)));
+        const effectiveMoney = adv.money * (1 + (upgrades.haggleLevel * 0.1));
+
+        if (effectiveMoney < repairCost) {
+          addLog(`【交渉】${adv.name}「修理したいが、金が足りない…」`);
+          return;
         }
+
+        setMoney(m => m + repairCost);
+        const newAdvs = [...adventurers];
+        newAdvs[advIndex].money = Math.max(0, adv.money - repairCost);
+        newAdvs[advIndex].trust = Math.min(100, adv.trust + 2); 
+        newAdvs[advIndex].equips[slot].durability = item.maxDurability;
+
+        setAdventurers(newAdvs);
+        addLog(`【修理】${adv.name}の ${item.name} を修理し、${repairCost}G を得た。`);
       };
 
       const handleMarketSell = (item) => {
@@ -548,29 +596,40 @@
 
         addLog(`💰【市場卸し】${item.name} を市場へ流した。${sellPrice}G の利益と、名声 ${fameGained} を得た！`);
 
-        if (newLevel > oldLevel && reserveAdvs.length > 0) {
-            const newAdv = reserveAdvs[0];
+        if (newLevel > oldLevel) {
+            const newAdv = generateAdventurer(day, guildLevel);
             setAdventurers(prev => [...prev, newAdv]);
-            setReserveAdvs(prev => prev.slice(1));
             addLog(`🌟【名声】市場に出回った武具の噂を聞きつけ、新たな冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた！`);
         }
       };
 
+      const handleBuyMaterial = (matId, amount, cost) => {
+        if (money < cost) return;
+        setMoney(m => m - cost);
+        setMaterials(prev => ({ ...prev, [matId]: prev[matId] + amount }));
+        addLog(`📦【仕入】問屋から ${MATERIALS[matId].name} を ${amount}個 (${cost}G) で買い付けた。`);
+      };
+
       const handleUpgrade = (type, cost) => {
-        if (money < cost) {
-          addLog(`【設備投資】金貨が足りない。もっと稼がなくては。`);
-          return;
-        }
+        if (money < cost) return;
         setMoney(m => m - cost);
         setUpgrades(prev => ({ ...prev, [type]: prev[type] + 1 }));
         addLog(`【設備投資】職人を呼び、工房の設備を拡張した。作業が捗りそうだ。`);
+      };
+
+      const handleGuildInvest = () => {
+        const cost = 1000 * guildLevel;
+        if (money >= cost) {
+          setMoney(m => m - cost);
+          setGuildLevel(l => l + 1);
+          addLog(`🤝【ギルド投資】ギルドに ${cost}G 寄付した。より優秀な新人冒険者が訪れるだろう！`);
+        }
       };
 
       const completeQuest = (quest, itemUid) => {
         setInventory(inv => inv.filter(i => i.uid !== itemUid));
         setMoney(m => m + quest.rewardMoney);
         setMaterials(mats => ({ ...mats, [quest.rewardMat]: (mats[quest.rewardMat] || 0) + quest.rewardMatAmt }));
-        
         addLog(`【ギルド納品】依頼の品を納め、金貨 ${quest.rewardMoney}G と 希少な素材を受け取った。`);
         setQuests(prev => prev.map(q => q.id === quest.id ? generateQuest(craftLevel) : q));
       };
@@ -578,6 +637,16 @@
       const abandonQuest = (questId) => {
         setQuests(prev => prev.map(q => q.id === questId ? generateQuest(craftLevel) : q));
         addLog(`【ギルド】手に負えない依頼を破棄し、新しい張り紙を確認した。`);
+      };
+
+      const handleVipQuestComplete = () => {
+        const targetItem = inventory.find(i => i.recipeId === 'mithril_sword' && (i.quality === 'エピック' || i.enchant === '神がかりの'));
+        if (!targetItem) return;
+
+        setInventory(inv => inv.filter(i => i.uid !== targetItem.uid));
+        setMoney(m => m + 50000);
+        setVipQuest(prev => ({ ...prev, active: false, completed: true }));
+        addLog(`👑【王室御用達】特命を見事果たした！報酬50,000Gに加え、王家より「伝説の炉」が下賜された！`);
       };
 
       const advanceDay = () => {
@@ -609,40 +678,55 @@
           let survivalRate = 40 + (totalPower - difficultyScore) * 1.5 + shopBonus;
           survivalRate = Math.max(5, Math.min(95, survivalRate));
           
-          const roll = Math.random() * 100;
-
-          if (roll > survivalRate) {
+          if (Math.random() * 100 > survivalRate) {
             adv.isDead = true;
             addLog(`🩸【悲劇】血に染まった荷物だけがギルドに届けられた。${adv.name}はダンジョンから帰還しなかった...`);
           } else {
             const rewardMoney = Math.floor((Math.random() * 100 + day * 15) * (1 + upgrades.haggleLevel * 0.2) * eventRewardMod);
             adv.money += rewardMoney;
 
-            let dropRarity = 1;
-            if (Math.random() * 100 < adv.trust / 2 + (day / 2)) dropRarity = 2;
-            if (Math.random() * 100 < adv.trust / 4 + (day / 4) || ['アサシン', '剣聖'].includes(adv.class)) dropRarity = 3;
+            // 装備の耐久度減少
+            ['weapon', 'armor', 'shield'].forEach(slot => {
+               if (adv.equips[slot] && adv.equips[slot].durability > 0) {
+                 adv.equips[slot].durability -= 1;
+               }
+            });
 
-            const possibleMats = Object.values(MATERIALS).filter(m => m.rarity <= dropRarity);
-            const dropMat = possibleMats[Math.floor(Math.random() * possibleMats.length)];
-            const dropAmt = Math.floor(Math.random() * 3) + 1;
+            const numDropTypes = Math.floor(Math.random() * 3) + 1; 
+            let totalBuyPrice = 0;
+            let droppedMatsStr = [];
 
-            const buyPrice = Math.floor(dropMat.basePrice * dropAmt * Math.max(0.5, (1.2 - (upgrades.haggleLevel * 0.1))) * eventBuyMod);
-            
-            if (money >= buyPrice && Math.random() * 100 < (adv.trust + 30)) {
-               setMoney(m => m - buyPrice);
-               earnedMaterials[dropMat.id] = (earnedMaterials[dropMat.id] || 0) + dropAmt;
-               addLog(`【買取】${adv.name}が泥だらけの袋から${dropMat.name}x${dropAmt}を取り出した。${buyPrice}G で買い取った。`);
+            for (let i = 0; i < numDropTypes; i++) {
+              let dropRarity = 1;
+              if (Math.random() * 100 < adv.trust / 2 + (day / 2)) dropRarity = 2;
+              if (Math.random() * 100 < adv.trust / 4 + (day / 4) || ['アサシン', '剣聖'].includes(adv.class)) dropRarity = 3;
+
+              const possibleMats = Object.values(MATERIALS).filter(m => m.rarity <= dropRarity);
+              const dropMat = possibleMats[Math.floor(Math.random() * possibleMats.length)];
+              const dropAmt = Math.floor(Math.random() * 4) + 2 + Math.floor(day / 20); 
+
+              const buyPrice = Math.floor(dropMat.basePrice * dropAmt * Math.max(0.5, (1.2 - (upgrades.haggleLevel * 0.1))) * eventBuyMod);
+              
+              if (money >= totalBuyPrice + buyPrice && Math.random() * 100 < (adv.trust + 50)) { 
+                 totalBuyPrice += buyPrice;
+                 earnedMaterials[dropMat.id] = (earnedMaterials[dropMat.id] || 0) + dropAmt;
+                 droppedMatsStr.push(`${dropMat.name}x${dropAmt}`);
+              }
+            }
+
+            if (droppedMatsStr.length > 0) {
+               setMoney(m => m - totalBuyPrice);
+               addLog(`【買取】${adv.name}から ${droppedMatsStr.join(', ')} を計 ${totalBuyPrice}G で買い取った。`);
             } else {
                addLog(`【生還】${adv.name}は傷だらけで酒場に現れ、無事 ${rewardMoney}G の報酬を得たようだ。`);
             }
           }
         });
 
-        if (reserveAdvs.length > 0 && (day % 10 === 0 || activeAdvsCount < 2)) {
-           const newAdv = reserveAdvs[0];
+        if (day % 5 === 0 || activeAdvsCount < 3) {
+           const newAdv = generateAdventurer(day, guildLevel);
            newAdvs.push(newAdv);
-           setReserveAdvs(reserveAdvs.slice(1));
-           addLog(`🌟【新規来店】「ここが良い武器を打つと聞いてね」。新しい冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた。`);
+           addLog(`🌟【新規来店】新しい冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた。`);
         }
 
         setMaterials(earnedMaterials);
@@ -667,11 +751,15 @@
           const newEvent = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
           setActiveEvent(newEvent);
           addLog(`📢【噂話】街で噂が流れている...「${newEvent.name}」：${newEvent.desc}`);
-        } else {
-          if (activeEvent) {
-            addLog(`📢【日常】街の喧騒は収まり、いつも通りの日々が戻ってきた。`);
-            setActiveEvent(null);
-          }
+        } else if (activeEvent) {
+          addLog(`📢【日常】街の喧騒は収まり、いつも通りの日々が戻ってきた。`);
+          setActiveEvent(null);
+        }
+
+        // VIPクエスト判定
+        if (!vipQuest.active && !vipQuest.completed && fame >= 300) {
+          setVipQuest(prev => ({ ...prev, active: true }));
+          addLog(`👑【特命】王室の使者が訪れた。「エピック品質のミスリルブレードを献上せよ」とのことだ…！`);
         }
 
         if (day >= 100) {
@@ -745,8 +833,11 @@
           <button onClick={() => setGameState('shop')} className={`text-left p-3 mb-2 rounded transition-colors ${gameState === 'shop' ? 'bg-[#D4AF37] text-[#3E2723] font-bold' : 'hover:bg-white/10'}`}>
             <span className="hidden md:inline">店舗 (販売)</span><span className="md:hidden">💰</span>
           </button>
+          <button onClick={() => setGameState('dealer')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-colors ${gameState === 'dealer' ? 'bg-[#D4AF37] text-[#3E2723] font-bold' : 'hover:bg-white/10'}`}>
+            <IconDealer /><span className="hidden md:inline">素材問屋</span>
+          </button>
           <button onClick={() => setGameState('quest')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-colors ${gameState === 'quest' ? 'bg-[#D4AF37] text-[#3E2723] font-bold' : 'hover:bg-white/10'}`}>
-            <IconQuest /><span className="hidden md:inline">ギルド (依頼)</span>
+            <IconQuest /><span className="hidden md:inline">ギルド</span>
           </button>
           <button onClick={() => setGameState('upgrade')} className={`text-left p-3 mb-2 rounded transition-colors ${gameState === 'upgrade' ? 'bg-[#D4AF37] text-[#3E2723] font-bold' : 'hover:bg-white/10'}`}>
             <span className="hidden md:inline">設備投資</span><span className="md:hidden">⚙️</span>
@@ -774,9 +865,9 @@
               <IconSave /> <span className="hidden md:inline">セーブ</span>
             </button>
             {hasSaveData && (
-              <button onClick={loadGame} className="w-full flex justify-center items-center gap-2 p-2 rounded bg-black/30 hover:bg-black/50 text-sm transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg> 
-                <span className="hidden md:inline">ロード</span>
+              <button onClick={handleLoadClick} className={`w-full flex justify-center items-center gap-2 p-2 rounded text-sm transition-colors ${confirmLoad ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-black/30 hover:bg-black/50'}`}>
+                <span className="hidden md:inline">{confirmLoad ? '本当にロード？' : 'ロード'}</span>
+                {confirmLoad && <span className="md:hidden">！</span>}
               </button>
             )}
           </div>
@@ -851,9 +942,9 @@
                            <span>予算: <span className="font-bold text-green-700">{a.money}G</span></span>
                          </div>
                          <div className="grid grid-cols-3 gap-1 text-[10px] text-center">
-                           <div className="bg-gray-100 p-1 rounded truncate" title={a.equips.weapon?.name}>{a.equips.weapon?.name || '-'}</div>
-                           <div className="bg-gray-100 p-1 rounded truncate" title={a.equips.armor?.name}>{a.equips.armor?.name || '-'}</div>
-                           <div className="bg-gray-100 p-1 rounded truncate" title={a.equips.shield?.name}>{a.equips.shield?.name || '-'}</div>
+                           <div className={`bg-gray-100 p-1 rounded truncate ${a.equips.weapon?.durability <= 0 ? 'text-red-500 line-through' : ''}`} title={a.equips.weapon?.name}>{a.equips.weapon?.name || '-'}</div>
+                           <div className={`bg-gray-100 p-1 rounded truncate ${a.equips.armor?.durability <= 0 ? 'text-red-500 line-through' : ''}`} title={a.equips.armor?.name}>{a.equips.armor?.name || '-'}</div>
+                           <div className={`bg-gray-100 p-1 rounded truncate ${a.equips.shield?.durability <= 0 ? 'text-red-500 line-through' : ''}`} title={a.equips.shield?.name}>{a.equips.shield?.name || '-'}</div>
                          </div>
                        </div>
                      );
@@ -995,9 +1086,10 @@
                   {aliveAdvs.map(adv => {
                     const optimalWeight = CLASS_DATA[adv.class].weight;
                     const isOptimal = shopSelectedItem ? shopSelectedItem.weight === optimalWeight : true;
+                    const needsRepair = ['weapon', 'armor', 'shield'].some(slot => adv.equips[slot] && adv.equips[slot].durability < adv.equips[slot].maxDurability);
 
                     return (
-                      <div key={adv.id} className={`p-4 border rounded ${shopSelectedItem ? 'bg-white shadow-sm' : 'bg-gray-50 opacity-80'} ${adv.class !== adv.baseClass ? 'border-yellow-400' : 'border-gray-200'}`}>
+                      <div key={adv.id} className={`p-4 border rounded ${shopSelectedItem ? 'bg-white shadow-sm' : 'bg-gray-50'} ${adv.class !== adv.baseClass ? 'border-yellow-400' : 'border-gray-200'}`}>
                         <div className="flex items-center justify-between mb-3 border-b pb-2">
                           <div className="flex items-center cursor-pointer hover:bg-gray-100 p-1 -ml-1 rounded transition-colors" onClick={() => setSelectedAdvInfo(adv)}>
                             <div className={`w-10 h-10 ${adv.class !== adv.baseClass ? 'bg-yellow-600' : 'bg-[#3E2723]'} text-[#D4AF37] rounded-full flex items-center justify-center mr-3 shadow`}>
@@ -1015,17 +1107,43 @@
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-3 gap-2 text-xs mb-3 opacity-80">
-                          <div className="bg-gray-50 border p-1 rounded text-center overflow-hidden">
-                            <div className="truncate font-semibold text-[10px] text-gray-500" title={adv.equips.weapon?.name}>{adv.equips.weapon ? adv.equips.weapon.name : '武器なし'}</div>
-                          </div>
-                          <div className="bg-gray-50 border p-1 rounded text-center overflow-hidden">
-                            <div className="truncate font-semibold text-[10px] text-gray-500" title={adv.equips.armor?.name}>{adv.equips.armor ? adv.equips.armor.name : '防具なし'}</div>
-                          </div>
-                          <div className="bg-gray-50 border p-1 rounded text-center overflow-hidden">
-                            <div className="truncate font-semibold text-[10px] text-gray-500" title={adv.equips.shield?.name}>{adv.equips.shield ? adv.equips.shield.name : '盾/飾なし'}</div>
-                          </div>
+                        <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+                          {['weapon', 'armor', 'shield'].map(slot => {
+                            const item = adv.equips[slot];
+                            return (
+                              <div key={slot} className="bg-gray-50 border p-1 rounded text-center overflow-hidden">
+                                <div className="truncate font-semibold text-[10px] text-gray-500" title={item?.name}>{item ? item.name : '装備なし'}</div>
+                                {item && (
+                                  <div className={`text-[9px] ${item.durability <= 0 ? 'text-red-500 font-bold' : item.durability < item.maxDurability ? 'text-orange-500' : 'text-gray-400'}`}>
+                                    耐: {item.durability}/{item.maxDurability}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
+                        
+                        {/* 修理セクション (アイテムを選択していない時のみ表示) */}
+                        {!shopSelectedItem && needsRepair && (
+                          <div className="bg-[#3E2723]/5 p-2 rounded mt-2 border border-[#3E2723]/20">
+                            <h4 className="font-bold text-xs mb-1 text-[#3E2723]">🛠️ 装備の修理</h4>
+                            {['weapon', 'armor', 'shield'].map(slot => {
+                              const item = adv.equips[slot];
+                              if (item && item.durability < item.maxDurability) {
+                                const repairCost = Math.max(1, Math.floor((item.maxDurability - item.durability) * (item.baseValue / 20)));
+                                return (
+                                  <div key={slot} className="flex justify-between items-center bg-white p-1.5 rounded border mb-1">
+                                    <span className="text-xs truncate mr-2">{item.name} <span className="text-red-500">({item.durability}/{item.maxDurability})</span></span>
+                                    <button onClick={() => handleRepair(adv.id, slot)} className="text-xs bg-[#D4AF37] text-[#3E2723] px-2 py-1 rounded font-bold hover:bg-yellow-500 flex-shrink-0">
+                                      修理: {repairCost}G
+                                    </button>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        )}
                         
                         {shopSelectedItem && (
                           <div className={`p-3 rounded mt-2 border ${isOptimal ? 'bg-[#3E2723]/5 border-[#3E2723]/20' : 'bg-red-50 border-red-200'}`}>
@@ -1061,25 +1179,97 @@
         );
       };
 
-      const renderQuestView = () => (
+      const renderDealerView = () => (
         <div className="p-6 font-sans text-[#2C3E50] max-w-5xl mx-auto h-full flex flex-col">
           <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0">
-            <IconQuest /> ギルド (依頼)
+            <IconDealer /> 素材問屋
           </h2>
-          <p className="mb-6 bg-white/50 p-3 rounded">街のギルドから寄せられた依頼です。在庫から該当アイテムを納品することで多額の報酬が得られます。</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-12 overflow-y-auto">
-            {quests.map(quest => (
-              <QuestCard 
-                key={quest.id} 
-                quest={quest} 
-                inventory={inventory} 
-                onAbandon={abandonQuest} 
-                onComplete={completeQuest} 
-              />
-            ))}
+          <p className="mb-6 bg-white/50 p-3 rounded">商人から割高で素材を直接買い付けることができます。どうしても必要な時に活用しましょう。</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto pb-12">
+            {Object.values(MATERIALS).map(m => {
+              const buyPrice = m.basePrice * 3; // 問屋はベース価格の3倍
+              return (
+                <div key={m.id} className="bg-white p-4 rounded shadow border border-gray-200 flex flex-col justify-between">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className={`font-bold ${m.rarity === 3 ? 'text-purple-600' : m.rarity === 2 ? 'text-blue-600' : 'text-gray-800'}`}>{m.name}</span>
+                    <span className="text-gray-500 text-sm">所持: <span className="font-bold text-[#2C3E50]">{materials[m.id]}</span></span>
+                  </div>
+                  <div className="text-sm font-bold text-[#3E2723] mb-3">
+                    単価: {buyPrice} G
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleBuyMaterial(m.id, 1, buyPrice)}
+                      disabled={money < buyPrice}
+                      className={`flex-1 py-2 rounded text-sm font-bold transition-colors ${money >= buyPrice ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                    >1個買う</button>
+                    <button 
+                      onClick={() => handleBuyMaterial(m.id, 5, buyPrice * 5)}
+                      disabled={money < buyPrice * 5}
+                      className={`flex-1 py-2 rounded text-sm font-bold transition-colors ${money >= buyPrice * 5 ? 'bg-[#3E2723] text-[#D4AF37] hover:bg-[#2c1b18]' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                    >5個買う</button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       );
+
+      const renderQuestView = () => {
+        const investCost = 1000 * guildLevel;
+        return (
+          <div className="p-6 font-sans text-[#2C3E50] max-w-5xl mx-auto h-full flex flex-col">
+            <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0">
+              <IconQuest /> ギルド (依頼・投資)
+            </h2>
+            
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-6 flex flex-col sm:flex-row justify-between items-center shadow-sm flex-shrink-0">
+               <div>
+                 <h4 className="font-bold text-blue-900 mb-1">ギルドへの資金援助 (現在の貢献Lv: {guildLevel})</h4>
+                 <p className="text-sm text-blue-800">資金を寄付することで、より強力な能力を持つ新人冒険者が街を訪れるようになります。</p>
+               </div>
+               <button 
+                 onClick={handleGuildInvest}
+                 disabled={money < investCost}
+                 className={`mt-3 sm:mt-0 px-6 py-2 rounded font-bold shadow whitespace-nowrap ${money >= investCost ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-200 text-blue-400 cursor-not-allowed'}`}
+               >
+                 寄付する: {investCost} G
+               </button>
+            </div>
+
+            {vipQuest.active && !vipQuest.completed && (
+              <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-400 p-5 rounded mb-6 shadow-md flex flex-col sm:flex-row justify-between items-center flex-shrink-0">
+                 <div>
+                   <h3 className="text-xl font-bold text-yellow-800 mb-2">👑 王室からの特命依頼</h3>
+                   <p className="text-sm text-yellow-900 mb-2">名声を聞きつけた王室からの直接の依頼です。「<span className="font-bold">エピック</span>」品質の「<span className="font-bold">ミスリルブレード</span>」を求めています。</p>
+                   <p className="font-bold text-red-600 text-sm">報酬: 50,000 G ＆ 「伝説の炉」の賜与</p>
+                 </div>
+                 <button 
+                   onClick={handleVipQuestComplete}
+                   disabled={!inventory.find(i => i.recipeId === 'mithril_sword' && (i.quality === 'エピック' || i.enchant === '神がかりの'))}
+                   className={`mt-4 sm:mt-0 px-6 py-3 rounded font-bold shadow-lg whitespace-nowrap ${inventory.find(i => i.recipeId === 'mithril_sword' && (i.quality === 'エピック' || i.enchant === '神がかりの')) ? 'bg-yellow-500 text-white hover:bg-yellow-600 animate-pulse' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                 >
+                   品を献上する
+                 </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-12 overflow-y-auto">
+              {quests.map(quest => (
+                <QuestCard 
+                  key={quest.id} 
+                  quest={quest} 
+                  inventory={inventory} 
+                  onAbandon={abandonQuest} 
+                  onComplete={completeQuest} 
+                />
+              ))}
+            </div>
+          </div>
+        );
+      };
 
       const renderUpgradeView = () => {
         const forgeCost = 500 * Math.pow(2, upgrades.forgeLevel);
@@ -1192,9 +1382,13 @@
                 </div>
               </div>
               <div className="mt-16 flex flex-col md:flex-row justify-center gap-6">
-                <button onClick={resetGame} className="bg-[#D4AF37] text-[#3E2723] hover:bg-yellow-500 font-bold px-8 py-3 rounded transition-colors text-lg">最初からやり直す</button>
+                <button onClick={handleResetClick} className={`font-bold px-8 py-3 rounded transition-colors text-lg ${confirmReset ? 'bg-red-600 text-white' : 'bg-[#D4AF37] text-[#3E2723] hover:bg-yellow-500'}`}>
+                  {confirmReset ? '本当にリセット？' : '最初からやり直す'}
+                </button>
                 {hasSaveData && (
-                  <button onClick={clearSave} className="text-red-400 hover:text-white border border-red-900 px-6 py-3 rounded transition-colors">記録を消去</button>
+                  <button onClick={handleClearClick} className={`px-6 py-3 rounded transition-colors ${confirmClear ? 'bg-red-700 text-white' : 'border border-red-900 text-red-400 hover:text-white'}`}>
+                    {confirmClear ? '記録を完全に消去？' : '記録を消去'}
+                  </button>
                 )}
               </div>
             </div>
@@ -1262,7 +1456,10 @@
                           {item ? (
                             <>
                               <span className="font-bold truncate flex-1 px-2">{item.name}</span>
-                              <span className="w-12 text-right text-gray-600">+{calcEquipPower(a.class, item)}</span>
+                              <div className="flex flex-col items-end w-16 flex-shrink-0">
+                                <span className="text-gray-600 font-bold">+{calcEquipPower(a.class, item)}</span>
+                                <span className={`text-[9px] ${item.durability <= 0 ? 'text-red-500' : 'text-gray-400'}`}>耐: {item.durability}/{item.maxDurability}</span>
+                              </div>
                             </>
                           ) : (
                             <span className="text-gray-400 flex-1 px-2">-</span>
@@ -1287,6 +1484,7 @@
               {gameState === 'menu' && renderMainMenu()}
               {gameState === 'craft' && renderCraftingView()}
               {gameState === 'shop' && renderShopView()}
+              {gameState === 'dealer' && renderDealerView()}
               {gameState === 'quest' && renderQuestView()}
               {gameState === 'upgrade' && renderUpgradeView()}
               {gameState === 'log' && renderLogView()}
@@ -1299,7 +1497,6 @@
       );
     }
 
-    // --- レンダリング ---
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
