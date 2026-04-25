@@ -205,6 +205,12 @@
 
     const FAME_THRESHOLDS = [20, 50, 100, 150, 250, 400, 600, 1000, 2000, 5000];
 
+    const VIP_QUESTS = [
+      { id: 0, fameReq: 200, targetRecipe: 'steel_sword', targetName: '鋼の長剣', reqQuality: 'エピック', reqEnchant: null, client: '男爵', rewardMoney: 20000, desc: '「エピック品質の鋼の長剣を納品せよ」', rewardDesc: '報酬: 20,000G' },
+      { id: 1, fameReq: 500, targetRecipe: 'mithril_sword', targetName: 'ミスリルブレード', reqQuality: 'エピック', reqEnchant: null, client: '辺境伯', rewardMoney: 50000, desc: '「エピック品質のミスリルブレードを献上せよ」', rewardDesc: '報酬: 50,000G ＆ 「伝説の炉」の賜与' },
+      { id: 2, fameReq: 1000, targetRecipe: 'god_katana', targetName: '神刀アマテラス', reqQuality: null, reqEnchant: '神がかりの', client: '国王', rewardMoney: 200000, desc: '「"神がかりの"エンチャントが付与された神刀アマテラスを献上せよ」', rewardDesc: '報酬: 200,000G' }
+    ];
+
     const INITIAL_ACHIEVEMENTS = [
       { id: 'craft_1', name: '初めの一歩', desc: '武具を1回製作する', condition: (state) => state.stats.crafted >= 1, rewardText: '鉄鉱石 x10', onClaim: (s) => { s.materials.iron += 10; }, claimed: false },
       { id: 'craft_epic', name: '名工の片鱗', desc: 'エピック品質の武具を製作する', condition: (state) => state.stats.epicCrafted >= 1, rewardText: '金貨 500 G', onClaim: (s) => { s.money += 500; }, claimed: false },
@@ -212,6 +218,7 @@
       { id: 'sell_10000', name: '商売繁盛', desc: '累計で 10,000 G 売り上げる', condition: (state) => state.stats.totalSales >= 10000, rewardText: '魔石 x5', onClaim: (s) => { s.materials.magic_stone += 5; }, claimed: false },
       { id: 'trust_100', name: '無二の親友', desc: '冒険者1人の好感度を MAX(100) にする', condition: (state) => state.adventurers.some(a => a.trust >= 100), rewardText: 'ミスリル x2', onClaim: (s) => { s.materials.mithril += 2; }, claimed: false },
       { id: 'boss_1', name: '街の守護者', desc: '最初のボスを討伐する', condition: (state) => state.day > 10, rewardText: '鋼鉄 x5', onClaim: (s) => { s.materials.steel += 5; }, claimed: false },
+      { id: 'money_100k', name: '莫大な資産', desc: '所持金が 100,000 G を超える', condition: (state) => state.money >= 100000, rewardText: '神の涙 x3', onClaim: (s) => { s.materials.god_tear += 3; }, claimed: false },
     ];
 
     // --- ユーティリティ関数 ---
@@ -243,7 +250,8 @@
       
       const guildBonus = (guildLvl - 1) * 15; 
       const basePower = Math.floor(Math.random() * 10) + 10 + Math.floor(currentDay * 1.5) + guildBonus;
-      const money = 200 + Math.floor(Math.random() * 200) + (currentDay * 30);
+      // ギルド投資で初期資金も大幅アップ
+      const money = 200 + Math.floor(Math.random() * 200) + (currentDay * 30) + ((guildLvl - 1) * 200);
       const optWeight = CLASS_DATA[advClass].weight;
       
       let initWeapon = null; let initArmor = null; let initShield = null;
@@ -437,7 +445,7 @@
       const [achievements, setAchievements] = useState(() => INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
 
       const [quests, setQuests] = useState([generateQuest(1), generateQuest(1), generateQuest(1)]);
-      const [vipQuest, setVipQuest] = useState({ active: false, completed: false });
+      const [vipState, setVipState] = useState({ stage: 0, isActive: false });
       
       const [dailyEvent, setDailyEvent] = useState(null); 
       const [activeEvent, setActiveEvent] = useState(null); 
@@ -468,7 +476,7 @@
 
       useEffect(() => {
         try {
-          const saved = localStorage.getItem('blacksmith_save_v11');
+          const saved = localStorage.getItem('blacksmith_save_v12');
           if (saved) setHasSaveData(true);
         } catch (e) {}
       }, []);
@@ -505,7 +513,7 @@
         setAchievements(prev => {
           let updated = false;
           const newAchievements = prev.map(ach => {
-            if (!ach.claimed && !ach.unlocked && ach.condition({ stats, fame, adventurers, day })) {
+            if (!ach.claimed && !ach.unlocked && ach.condition({ stats, fame, adventurers, day, money })) {
               updated = true;
               return { ...ach, unlocked: true }; 
             }
@@ -517,7 +525,7 @@
           }
           return prev;
         });
-      }, [stats, fame, adventurers, day]);
+      }, [stats, fame, adventurers, day, money]);
 
       const claimAchievement = (achId) => {
         const ach = achievements.find(a => a.id === achId);
@@ -535,8 +543,8 @@
 
       const saveGame = () => {
         try {
-          const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipQuest, activeEvent };
-          localStorage.setItem('blacksmith_save_v11', JSON.stringify(data));
+          const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent };
+          localStorage.setItem('blacksmith_save_v12', JSON.stringify(data));
           setHasSaveData(true);
           addLog('【記録】帳簿に現在の状況を書き留めた。(セーブ完了)');
           showToast('ゲームをセーブしました', 'success');
@@ -548,14 +556,14 @@
       const loadGame = () => {
         if (confirmLoad) {
           try {
-            const dataStr = localStorage.getItem('blacksmith_save_v11');
+            const dataStr = localStorage.getItem('blacksmith_save_v12');
             if (dataStr) {
               const data = JSON.parse(dataStr);
               setDay(data.day); setMoney(data.money); setFame(data.fame || 0);
               setMaterials(data.materials); setInventory(data.inventory); setAdventurers(data.adventurers);
               setLogs([...data.logs, `[Day ${data.day}] 【再開】帳簿を読み返し、昨日の続きから作業を始める。`]);
               setUpgrades(data.upgrades); setCraftLevel(data.craftLevel || 1); setCraftExp(data.craftExp || 0);
-              setGuildLevel(data.guildLevel || 1); setVipQuest(data.vipQuest || { active: false, completed: false });
+              setGuildLevel(data.guildLevel || 1); setVipState(data.vipState || { stage: 0, isActive: false });
               setActiveEvent(data.activeEvent || null);
               setStats(data.stats || { crafted: 0, epicCrafted: 0, totalSales: 0 });
               setAchievements(INITIAL_ACHIEVEMENTS.map(baseAch => {
@@ -574,7 +582,7 @@
 
       const clearSave = () => {
         if (confirmClear) {
-          try { localStorage.removeItem('blacksmith_save_v11'); setHasSaveData(false); showToast('セーブデータを消去しました', 'info'); } catch (e) { }
+          try { localStorage.removeItem('blacksmith_save_v12'); setHasSaveData(false); showToast('セーブデータを消去しました', 'info'); } catch (e) { }
           setConfirmClear(false);
         } else {
           setConfirmClear(true); setTimeout(() => setConfirmClear(false), 3000);
@@ -589,7 +597,7 @@
           setLogs(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
           setCraftLevel(1); setCraftExp(0); setUpgrades({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
           setStats({ crafted: 0, epicCrafted: 0, totalSales: 0 }); setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
-          setQuests([generateQuest(1), generateQuest(1), generateQuest(1)]); setVipQuest({ active: false, completed: false });
+          setQuests([generateQuest(1), generateQuest(1), generateQuest(1)]); setVipState({ stage: 0, isActive: false });
           setActiveEvent(null); setEndingId(null); setBossReport(null); setConfirmReset(false);
         } else {
           setConfirmReset(true); setTimeout(() => setConfirmReset(false), 3000);
@@ -629,7 +637,7 @@
         setMaterials(newMaterials);
 
         let qualityRoll = Math.random() * 100 + (upgrades.forgeLevel * 10);
-        if (vipQuest.completed) qualityRoll += 50; 
+        if (vipState.stage >= 2) qualityRoll += 50; 
 
         let qualityStr = "ノーマル"; let qMultiplier = 1.0;
         if (qualityRoll > 95) { qualityStr = "エピック"; qMultiplier = 1.6; }
@@ -637,10 +645,10 @@
         else if (qualityRoll < 5) { qualityStr = "粗悪"; qMultiplier = 0.7; }
 
         let appliedEnchant = null;
-        if (vipQuest.completed && Math.random() * 100 < 30) {
+        if (vipState.stage >= 2 && Math.random() * 100 < 30) {
           appliedEnchant = ENCHANTS.find(e => e.id === 'divine');
         } else {
-          const enchantChance = 10 + (upgrades.forgeLevel * 5) + (qualityStr === 'エピック' ? 30 : 0) + (vipQuest.completed ? 30 : 0);
+          const enchantChance = 10 + (upgrades.forgeLevel * 5) + (qualityStr === 'エピック' ? 30 : 0) + (vipState.stage >= 2 ? 30 : 0);
           if (Math.random() * 100 < enchantChance) {
             const normalEnchants = ENCHANTS.filter(e => e.weight > 0);
             const totalWeight = normalEnchants.reduce((sum, e) => sum + e.weight, 0);
@@ -793,14 +801,25 @@
       };
 
       const handleVipQuestComplete = () => {
-        const targetItem = inventory.find(i => i.recipeId === 'mithril_sword' && (i.quality === 'エピック' || i.enchant === '神がかりの'));
+        const currentVip = VIP_QUESTS[vipState.stage];
+        const targetItem = inventory.find(i => 
+          i.recipeId === currentVip.targetRecipe && 
+          (!currentVip.reqQuality || i.quality === currentVip.reqQuality) &&
+          (!currentVip.reqEnchant || i.enchant === currentVip.reqEnchant)
+        );
         if (!targetItem) return;
 
         setInventory(inv => inv.filter(i => i.uid !== targetItem.uid));
-        setMoney(m => m + 50000);
-        setVipQuest(prev => ({ ...prev, active: false, completed: true }));
-        showToast(`王室の特命を果たしました！`, 'success');
-        addLog(`👑【王室御用達】特命を見事果たした！報酬50,000Gに加え、王家より「伝説の炉」が下賜された！`);
+        setMoney(m => m + currentVip.rewardMoney);
+        
+        const nextStage = vipState.stage + 1;
+        setVipState({ stage: nextStage, isActive: false });
+        
+        showToast(`${currentVip.client}の特命を果たしました！`, 'success');
+        addLog(`👑【王室御用達】${currentVip.client}からの特命を見事果たした！報酬${currentVip.rewardMoney}Gを得た！`);
+        if (currentVip.id === 1) {
+          addLog(`🔥【恩恵】王家より「伝説の炉」が下賜された！製作の品質とエンチャント確率が大幅に上がる！`);
+        }
       };
 
       const triggerDailyEvent = () => {
@@ -991,9 +1010,13 @@
             if (nextMoney < 0) { setEndingId('bankrupt'); setIsTransitioning(false); setGameState('ending'); return; }
           }
 
-          if (!vipQuest.active && !vipQuest.completed && fame >= 300) {
-            setVipQuest(prev => ({ ...prev, active: true }));
-            addLog(`👑【特命】王室から「エピック品質のミスリルブレードを献上せよ」との依頼が来た！`);
+          // VIPクエスト発生判定
+          if (!vipState.isActive && vipState.stage < VIP_QUESTS.length) {
+            const nextVip = VIP_QUESTS[vipState.stage];
+            if (fame >= nextVip.fameReq) {
+              setVipState(prev => ({ ...prev, isActive: true }));
+              addLog(`👑【特命】${nextVip.client}の使者が訪れた。${nextVip.desc}とのことだ…！`);
+            }
           }
 
           if (day >= 100) { checkEnding(nextMoney, newAdvs); setIsTransitioning(false); return; }
@@ -1242,7 +1265,6 @@
                 </h3>
                 <div className="overflow-y-auto p-4 space-y-4 flex-1 bg-gray-50/50">
                   {aliveAdvs.map(adv => {
-                    const powerInfo = calcTotalPowerInfo(adv);
                     const optimalWeight = CLASS_DATA[adv.class].weight;
                     const isOptimal = shopSelectedItem ? shopSelectedItem.weight === optimalWeight : true;
                     const isFavored = shopSelectedItem ? CLASS_DATA[adv.class].fav.includes(shopSelectedItem.category) : false;
@@ -1353,14 +1375,14 @@
                  寄付する: {investCost} G
                </button>
             </div>
-            {vipQuest.active && !vipQuest.completed && (
+            {vipState.isActive && vipState.stage < VIP_QUESTS.length && (
               <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-400 p-5 rounded mb-6 shadow-md flex flex-col sm:flex-row justify-between items-center flex-shrink-0 animate-pulse">
                  <div>
-                   <h3 className="text-xl font-bold text-yellow-800 mb-2">👑 王室からの特命依頼</h3>
-                   <p className="text-sm text-yellow-900 mb-2">名声を聞きつけた王室からの直接の依頼です。「<span className="font-bold">エピック</span>」品質の「<span className="font-bold">ミスリルブレード</span>」を求めています。</p>
-                   <p className="font-bold text-red-600 text-sm">報酬: 50,000 G ＆ 「伝説の炉」の賜与</p>
+                   <h3 className="text-xl font-bold text-yellow-800 mb-2">👑 {VIP_QUESTS[vipState.stage].client}からの特命依頼</h3>
+                   <p className="text-sm text-yellow-900 mb-2">{VIP_QUESTS[vipState.stage].desc}</p>
+                   <p className="font-bold text-red-600 text-sm">{VIP_QUESTS[vipState.stage].rewardDesc}</p>
                  </div>
-                 <button onClick={handleVipQuestComplete} disabled={!inventory.find(i => i.recipeId === 'mithril_sword' && (i.quality === 'エピック' || i.enchant === '神がかりの'))} className={`mt-4 sm:mt-0 px-6 py-3 rounded font-bold shadow-lg whitespace-nowrap transition-all active:scale-95 ${inventory.find(i => i.recipeId === 'mithril_sword' && (i.quality === 'エピック' || i.enchant === '神がかりの')) ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
+                 <button onClick={handleVipQuestComplete} disabled={!inventory.find(i => i.recipeId === VIP_QUESTS[vipState.stage].targetRecipe && (!VIP_QUESTS[vipState.stage].reqQuality || i.quality === VIP_QUESTS[vipState.stage].reqQuality) && (!VIP_QUESTS[vipState.stage].reqEnchant || i.enchant === VIP_QUESTS[vipState.stage].reqEnchant))} className={`mt-4 sm:mt-0 px-6 py-3 rounded font-bold shadow-lg whitespace-nowrap transition-all active:scale-95 ${inventory.find(i => i.recipeId === VIP_QUESTS[vipState.stage].targetRecipe && (!VIP_QUESTS[vipState.stage].reqQuality || i.quality === VIP_QUESTS[vipState.stage].reqQuality) && (!VIP_QUESTS[vipState.stage].reqEnchant || i.enchant === VIP_QUESTS[vipState.stage].reqEnchant)) ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
                    品を献上する
                  </button>
               </div>
@@ -1433,7 +1455,7 @@
           <div className="bg-[#3E2723] text-[#F4EFE6] rounded shadow-md border border-[#D4AF37] flex flex-col overflow-hidden flex-1 min-h-0">
             <div className="overflow-y-auto p-4 md:p-6 space-y-2 text-sm md:text-base flex-1 font-mono">
               {logs.filter(l => !l.startsWith("=== REPORT_START ===")).map((l, i) => (
-                <div key={i} className={`py-1 border-b border-white/10 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【警告】') || l.includes('【納税】') || l.includes('【製作失敗】') || l.includes('【交渉決裂】') ? 'text-red-400' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') ? 'text-yellow-300 font-bold' : l.includes('✨') || l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') ? 'text-blue-300 font-bold' : l.includes('💰') || l.includes('📦') || l.includes('特別報酬') ? 'text-green-300' : 'text-gray-200'}`}>
+                <div key={i} className={`py-1 border-b border-white/10 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【警告】') || l.includes('【納税】') || l.includes('【製作失敗】') || l.includes('【交渉決裂】') ? 'text-red-400' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') || l.includes('【恩恵】') ? 'text-yellow-300 font-bold' : l.includes('✨') || l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') || l.includes('王室御用達') ? 'text-blue-300 font-bold' : l.includes('💰') || l.includes('📦') || l.includes('特別報酬') ? 'text-green-300' : 'text-gray-200'}`}>
                   {l}
                 </div>
               ))}
@@ -1490,7 +1512,7 @@
 
               <div className="bg-gray-100 p-4 rounded mb-8 text-left h-64 overflow-y-auto text-xs md:text-sm border font-mono">
                  {yesterdayLogs.map((l, i) => (
-                   <div key={i} className={`py-1.5 border-b border-gray-200 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【納税】') ? 'text-red-600 font-bold bg-red-50' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') ? 'text-yellow-700 font-bold bg-yellow-50' : l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') ? 'text-blue-600 font-bold bg-blue-50' : 'text-gray-700'}`}>
+                   <div key={i} className={`py-1.5 border-b border-gray-200 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【納税】') ? 'text-red-600 font-bold bg-red-50' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') || l.includes('【恩恵】') ? 'text-yellow-700 font-bold bg-yellow-50' : l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') || l.includes('王室御用達') ? 'text-blue-600 font-bold bg-blue-50' : 'text-gray-700'}`}>
                      {l}
                    </div>
                  ))}
