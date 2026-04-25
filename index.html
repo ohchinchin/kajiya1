@@ -172,7 +172,12 @@
       { id: 'divine', name: '神がかりの', powerMult: 3.0, valueMult: 4.0, weight: 0 }, 
     ];
 
-    const ADVENTURER_NAMES = ["アレン", "セリア", "ルーク", "ジャン", "マリア", "ガレス", "ミア", "エレーナ", "アーサー", "バルド", "シルヴィア", "レオ", "カイト", "リナ", "ゼノン", "フレイヤ", "ロイド", "アイシャ", "クロエ", "ノア"];
+    const ADVENTURER_NAMES = [
+      "アレン", "セリア", "ルーク", "ジャン", "マリア", "ガレス", "ミア", "エレーナ", "アーサー", "バルド", 
+      "シルヴィア", "レオ", "カイト", "リナ", "ゼノン", "フレイヤ", "ロイド", "アイシャ", "クロエ", "ノア",
+      "オズワルド", "アイザック", "ユリア", "オリビア", "フェリックス", "クラウス", "シオン", "アリス", "エドガー", "マルコ",
+      "ディアン", "カチュア", "グレン", "ルーカス", "ソフィア"
+    ];
     
     const FLAVOR_TEXTS = [
       "田舎村から一攫千金を夢見てやってきた若者。",
@@ -181,6 +186,20 @@
       "知識欲の塊で、未知の魔物や古代遺跡に目がない。",
       "家族を養うため、危険を承知で剣を取った心優しき戦士。",
       "ただ強者と戦うことだけを求める戦闘狂。",
+      "酒とギャンブルで作った借金を返すため、ダンジョンに潜り続ける。",
+      "伝説の武具を求めて世界中を旅している放浪者。",
+      "病に伏せる妹の薬代を稼ぐため、無茶な探索を繰り返している。",
+      "騎士団から追放され、名誉挽回の機会を狙っている。",
+      "神のお告げを聞いたと主張し、魔物討伐を己の使命としている。",
+      "故郷を魔物に滅ぼされ、復讐のためだけに生きている。",
+      "元は優秀な商人だったが、スリルを求めて冒険者に転向した。",
+      "魔術の実験で失敗し、莫大な借金を背負ってしまった魔法使い。",
+      "自分が何者かを知るため、記憶喪失のまま迷宮に挑む。",
+      "美味しい魔物料理を求めて、危険なダンジョンをさまよう美食家。",
+      "お宝の匂いには敏感で、罠を解除させたら右に出る者はいない。",
+      "口数は少ないが、仲間を守るためなら己の命も投げ出す。",
+      "派手な魔法で敵を蹴散らすのが大好きな、自己顕示欲の強い魔術師。",
+      "誰よりも臆病だが、いざという時には信じられない力を発揮する。"
     ];
 
     const RANDOM_EVENTS = [
@@ -191,17 +210,28 @@
     ];
 
     const BOSSES = [
-      { day: 10, name: "狂暴なるオーク", power: 300, rewardMoney: 5000, rewardMats: { steel: 5, magic_stone: 3 } },
-      { day: 20, name: "毒沼のキメラ", power: 800, rewardMoney: 12000, rewardMats: { hard_leather: 5, fine_wood: 5 } },
-      { day: 30, name: "古代遺跡のゴーレム", power: 1500, rewardMoney: 25000, rewardMats: { mithril: 3, high_magic_stone: 3 } },
-      { day: 40, name: "深淵のヴァンパイア", power: 2500, rewardMoney: 40000, rewardMats: { dragon_scale: 3, mithril: 5 } },
-      { day: 50, name: "業火の古竜", power: 4000, rewardMoney: 80000, rewardMats: { orichalcum: 2, adamantite: 2 } },
-      { day: 60, name: "魔将軍ベリアル", power: 6500, rewardMoney: 150000, rewardMats: { god_tear: 1, orichalcum: 3 } },
-      { day: 70, name: "堕ちた天使", power: 9500, rewardMoney: 250000, rewardMats: { god_tear: 2, adamantite: 5 } },
-      { day: 80, name: "混沌の化身", power: 14000, rewardMoney: 400000, rewardMats: { god_tear: 3, orichalcum: 5 } },
-      { day: 90, name: "魔王の片腕", power: 20000, rewardMoney: 600000, rewardMats: { god_tear: 5, adamantite: 10 } },
-      { day: 100, name: "破壊神", power: 30000, rewardMoney: 1000000, rewardMats: { god_tear: 10 } },
+      { day: 10, name: "狂暴なるオーク", power: 400, rewardMoney: 5000, rewardMats: { steel: 5, magic_stone: 3 } },
+      { day: 30, name: "古代遺跡のゴーレム", power: 2000, rewardMoney: 15000, rewardMats: { mithril: 3, high_magic_stone: 3 } },
+      { day: 50, name: "業火の古竜", power: 6000, rewardMoney: 40000, rewardMats: { orichalcum: 2, adamantite: 2 } },
+      { day: 70, name: "堕ちた天使", power: 15000, rewardMoney: 100000, rewardMats: { god_tear: 2, adamantite: 5 } },
+      { day: 100, name: "破壊神", power: 40000, rewardMoney: 500000, rewardMats: { god_tear: 10 } },
     ];
+
+    const getTaxAmount = (day) => {
+      if (day === 20) return 2000;
+      if (day === 40) return 8000;
+      if (day === 60) return 25000;
+      if (day === 80) return 60000;
+      return 0;
+    };
+
+    const getNextTaxDay = (currentDay) => {
+      if (currentDay <= 20) return 20;
+      if (currentDay <= 40) return 40;
+      if (currentDay <= 60) return 60;
+      if (currentDay <= 80) return 80;
+      return null;
+    };
 
     const FAME_THRESHOLDS = [20, 50, 100, 150, 250, 400, 600, 1000, 2000, 5000];
 
@@ -239,8 +269,22 @@
       };
     };
 
-    const generateAdventurer = (currentDay, guildLvl) => {
-      const name = ADVENTURER_NAMES[Math.floor(Math.random() * ADVENTURER_NAMES.length)];
+    // existingAdvs には現在生存している全冒険者のリストを渡す
+    const generateAdventurer = (currentDay, guildLvl, existingAdvs = []) => {
+      const aliveNames = existingAdvs.filter(a => !a.isDead).map(a => a.name);
+      
+      // すでに生存している名前を除外して候補を作成
+      const availableNames = ADVENTURER_NAMES.filter(name => !aliveNames.includes(name));
+      let name;
+      
+      if (availableNames.length > 0) {
+        name = availableNames[Math.floor(Math.random() * availableNames.length)];
+      } else {
+        // 候補がない場合は「〜世」などをつけて重複を避ける（保険）
+        const baseName = ADVENTURER_NAMES[Math.floor(Math.random() * ADVENTURER_NAMES.length)];
+        name = baseName + (Math.floor(Math.random() * 100) + 2).toString() + "世";
+      }
+
       let baseClasses = ['戦士', '剣士', '僧侶', '盗賊', '魔法使い'];
       
       let advClass = baseClasses[Math.floor(Math.random() * baseClasses.length)];
@@ -250,7 +294,6 @@
       
       const guildBonus = (guildLvl - 1) * 15; 
       const basePower = Math.floor(Math.random() * 10) + 10 + Math.floor(currentDay * 1.5) + guildBonus;
-      // ギルド投資で初期資金も大幅アップ
       const money = 200 + Math.floor(Math.random() * 200) + (currentDay * 30) + ((guildLvl - 1) * 200);
       const optWeight = CLASS_DATA[advClass].weight;
       
@@ -268,23 +311,28 @@
       };
     };
 
-    const generateQuest = (currentCraftLvl) => {
+    const generateQuest = (currentCraftLvl, type, currentDay) => {
       const availableRecipes = RECIPES.filter(r => r.reqLevel <= currentCraftLvl + 1);
       const targetRecipe = availableRecipes[Math.floor(Math.random() * availableRecipes.length)] || RECIPES[0];
       const bonusMats = ['magic_stone', 'steel', 'fine_wood', 'hard_leather', 'mithril', 'dragon_scale'];
       const rewardMatId = bonusMats[Math.floor(Math.random() * Math.min(bonusMats.length, Math.ceil(currentCraftLvl/2)))];
+      
+      const isLimited = type === 'limited';
+      const rewardMult = isLimited ? 4.5 : 3.0;
+      const deadline = isLimited ? currentDay + Math.floor(Math.random() * 3) + 2 : null; 
+
       return {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
         targetRecipeId: targetRecipe.id, targetName: targetRecipe.name,
-        rewardMoney: Math.floor(targetRecipe.baseValue * 3.0),
+        rewardMoney: Math.floor(targetRecipe.baseValue * rewardMult),
         rewardMat: rewardMatId,
-        rewardMatAmt: Math.floor(Math.random() * 3) + 1
+        rewardMatAmt: Math.floor(Math.random() * 3) + (isLimited ? 2 : 1),
+        type: type,
+        deadline: deadline,
+        isCompleted: false
       };
     };
 
-    const calcTax = (day) => Math.floor(300 * Math.pow(1.5, Math.ceil(day / 10) - 1));
-
-    // 職業ごとの得意武器ボーナスを含めた計算
     const calcEquipPower = (advClass, item) => {
       if (!item) return { base: 0, final: 0, isOptimalWeight: false, isFavored: false };
       let pwr = item.durability <= 0 ? Math.floor(item.power * 0.1) : item.power;
@@ -357,6 +405,7 @@
     const IconDealer = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>;
     const IconAchievement = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>;
     const IconSkull = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M14.5 12.5V16a2.5 2.5 0 0 1-5 0v-3.5"></path><path d="M8 12l-2.5 2.5"></path><path d="M16 12l2.5 2.5"></path></svg>;
+    const IconHelp = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
 
     // --- 子コンポーネント ---
     const DailyEventModal = ({ event, onResolve }) => {
@@ -395,10 +444,27 @@
         }
       }, [inventory, availableItems, selectedUid]);
 
+      if (quest.isCompleted) {
+        return (
+          <div className="bg-gray-100 p-5 rounded shadow-sm border border-gray-300 flex flex-col justify-center items-center opacity-70">
+            <span className="text-4xl mb-2">✅</span>
+            <p className="font-bold text-gray-500">この依頼は達成済みです</p>
+            {quest.type === 'limited' ? 
+              <p className="text-xs text-gray-400 mt-1">次の日に新しい依頼が来るかもしれません</p> :
+              <p className="text-xs text-gray-400 mt-1">すぐに次の依頼が張り出されます</p>
+            }
+          </div>
+        );
+      }
+
       return (
-        <div className="bg-white p-5 rounded shadow-md border border-[#3E2723]/30 flex flex-col justify-between">
+        <div className={`p-5 rounded shadow-md border flex flex-col justify-between ${quest.type === 'limited' ? 'bg-red-50 border-red-300' : 'bg-white border-[#3E2723]/30'}`}>
           <div>
-            <h3 className="text-lg font-bold mb-3 border-b pb-2 text-[#3E2723]">【依頼】{quest.targetName}の納品</h3>
+            <h3 className="text-lg font-bold mb-3 border-b pb-2 text-[#3E2723]">
+              {quest.type === 'limited' && <span className="text-red-600 mr-2 text-sm">【期限:Day{quest.deadline}】</span>}
+              {!quest.type || quest.type === 'permanent' ? <span className="text-blue-600 mr-2 text-sm">【常設】</span> : null}
+              {quest.targetName}の納品
+            </h3>
             <div className="bg-gray-50 p-3 rounded mb-4 text-sm">
               <div className="text-gray-500 mb-1">報酬:</div>
               <div className="font-bold text-green-700 text-lg mb-1">{quest.rewardMoney} G</div>
@@ -427,15 +493,21 @@
 
     // --- メインアプリケーション ---
     function App() {
-      const [gameState, setGameState] = useState('menu');
+      const [isLoaded, setIsLoaded] = useState(false);
+      const [gameState, setGameState] = useState('menu'); 
+      
+      const initAdvs = [];
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
+
       const [day, setDay] = useState(1);
       const [money, setMoney] = useState(1500); 
       const [fame, setFame] = useState(0); 
-      const [materials, setMaterials] = useState({ iron: 40, wood: 40, leather: 30, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
+      const [materials, setMaterials] = useState({ iron: 50, wood: 50, leather: 40, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
       const [inventory, setInventory] = useState([]);
-      
       const [guildLevel, setGuildLevel] = useState(1);
-      const [adventurers, setAdventurers] = useState(() => [generateAdventurer(1, 1), generateAdventurer(1, 1), generateAdventurer(1, 1)]);
+      const [adventurers, setAdventurers] = useState(initAdvs);
       const [logs, setLogs] = useState(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
       
       const [craftLevel, setCraftLevel] = useState(1);
@@ -444,13 +516,15 @@
       const [stats, setStats] = useState({ crafted: 0, epicCrafted: 0, totalSales: 0 }); 
       const [achievements, setAchievements] = useState(() => INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
 
-      const [quests, setQuests] = useState([generateQuest(1), generateQuest(1), generateQuest(1)]);
+      const [quests, setQuests] = useState([
+        generateQuest(1, 'permanent', 1), generateQuest(1, 'permanent', 1), 
+        generateQuest(1, 'limited', 1), generateQuest(1, 'limited', 1)
+      ]);
       const [vipState, setVipState] = useState({ stage: 0, isActive: false });
       
       const [dailyEvent, setDailyEvent] = useState(null); 
       const [activeEvent, setActiveEvent] = useState(null); 
       const [endingId, setEndingId] = useState(null);
-      const [hasSaveData, setHasSaveData] = useState(false);
       const [selectedAdvInfo, setSelectedAdvInfo] = useState(null); 
       const [shopSelectedItem, setShopSelectedItem] = useState(null);
       const [shopPricePct, setShopPricePct] = useState(100);
@@ -463,8 +537,6 @@
       // ボス戦結果
       const [bossReport, setBossReport] = useState(null);
 
-      const [confirmLoad, setConfirmLoad] = useState(false);
-      const [confirmClear, setConfirmClear] = useState(false);
       const [confirmReset, setConfirmReset] = useState(false);
 
       const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
@@ -474,12 +546,43 @@
       const logsEndRef = useRef(null);
       const toastTimerRef = useRef(null);
 
+      // オートロード（初回のみ）
       useEffect(() => {
         try {
-          const saved = localStorage.getItem('blacksmith_save_v12');
-          if (saved) setHasSaveData(true);
+          const saved = localStorage.getItem('blacksmith_save_v16');
+          if (saved) {
+            const data = JSON.parse(saved);
+            setDay(data.day); setMoney(data.money); setFame(data.fame || 0);
+            setMaterials(data.materials); setInventory(data.inventory); setAdventurers(data.adventurers);
+            setLogs(data.logs);
+            setUpgrades(data.upgrades); setCraftLevel(data.craftLevel || 1); setCraftExp(data.craftExp || 0);
+            setGuildLevel(data.guildLevel || 1); setVipState(data.vipState || { stage: 0, isActive: false });
+            setActiveEvent(data.activeEvent || null);
+            setStats(data.stats || { crafted: 0, epicCrafted: 0, totalSales: 0 });
+            setAchievements(INITIAL_ACHIEVEMENTS.map(baseAch => {
+              const savedAch = (data.achievements || []).find(a => a.id === baseAch.id);
+              return { ...baseAch, ...(savedAch || {}) };
+            }));
+            setQuests(data.quests || [generateQuest(1, 'permanent', 1), generateQuest(1, 'permanent', 1), generateQuest(1, 'limited', 1), generateQuest(1, 'limited', 1)]);
+            setGameState('menu'); 
+          }
         } catch (e) {}
+        setIsLoaded(true);
       }, []);
+
+      // 完全オートセーブ機構
+      useEffect(() => {
+        if (!isLoaded) return;
+        const timer = setTimeout(() => {
+          try {
+            const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent };
+            localStorage.setItem('blacksmith_save_v16', JSON.stringify(data));
+          } catch (e) {
+            console.warn("Auto-save failed:", e);
+          }
+        }, 1000); 
+        return () => clearTimeout(timer);
+      }, [day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent, isLoaded]);
 
       useEffect(() => {
         if (gameState === 'log' && logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -510,6 +613,7 @@
       };
 
       useEffect(() => {
+        if(!isLoaded) return;
         setAchievements(prev => {
           let updated = false;
           const newAchievements = prev.map(ach => {
@@ -525,7 +629,7 @@
           }
           return prev;
         });
-      }, [stats, fame, adventurers, day, money]);
+      }, [stats, fame, adventurers, day, money, isLoaded]);
 
       const claimAchievement = (achId) => {
         const ach = achievements.find(a => a.id === achId);
@@ -541,64 +645,24 @@
         addLog(`🏆【実績達成】「${ach.name}」を達成し、報酬を得た。`);
       };
 
-      const saveGame = () => {
-        try {
-          const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent };
-          localStorage.setItem('blacksmith_save_v12', JSON.stringify(data));
-          setHasSaveData(true);
-          addLog('【記録】帳簿に現在の状況を書き留めた。(セーブ完了)');
-          showToast('ゲームをセーブしました', 'success');
-        } catch (e) {
-          showToast('環境制限によりセーブできません', 'error');
-        }
-      };
-
-      const loadGame = () => {
-        if (confirmLoad) {
-          try {
-            const dataStr = localStorage.getItem('blacksmith_save_v12');
-            if (dataStr) {
-              const data = JSON.parse(dataStr);
-              setDay(data.day); setMoney(data.money); setFame(data.fame || 0);
-              setMaterials(data.materials); setInventory(data.inventory); setAdventurers(data.adventurers);
-              setLogs([...data.logs, `[Day ${data.day}] 【再開】帳簿を読み返し、昨日の続きから作業を始める。`]);
-              setUpgrades(data.upgrades); setCraftLevel(data.craftLevel || 1); setCraftExp(data.craftExp || 0);
-              setGuildLevel(data.guildLevel || 1); setVipState(data.vipState || { stage: 0, isActive: false });
-              setActiveEvent(data.activeEvent || null);
-              setStats(data.stats || { crafted: 0, epicCrafted: 0, totalSales: 0 });
-              setAchievements(INITIAL_ACHIEVEMENTS.map(baseAch => {
-                const savedAch = (data.achievements || []).find(a => a.id === baseAch.id);
-                return { ...baseAch, ...(savedAch || {}) };
-              }));
-              setQuests(data.quests || [generateQuest(1), generateQuest(1), generateQuest(1)]);
-              setGameState('menu'); showToast('ロードに成功しました', 'success');
-            }
-          } catch (e) { showToast('ロードに失敗しました', 'error'); }
-          setConfirmLoad(false);
-        } else {
-          setConfirmLoad(true); setTimeout(() => setConfirmLoad(false), 3000);
-        }
-      };
-
-      const clearSave = () => {
-        if (confirmClear) {
-          try { localStorage.removeItem('blacksmith_save_v12'); setHasSaveData(false); showToast('セーブデータを消去しました', 'info'); } catch (e) { }
-          setConfirmClear(false);
-        } else {
-          setConfirmClear(true); setTimeout(() => setConfirmClear(false), 3000);
-        }
-      };
-
       const resetGame = () => {
         if (confirmReset) {
+          try { localStorage.removeItem('blacksmith_save_v16'); } catch(e){}
           setGameState('menu'); setDay(1); setMoney(1500); setFame(0);
-          setMaterials({ iron: 40, wood: 40, leather: 30, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
-          setInventory([]); setGuildLevel(1); setAdventurers([generateAdventurer(1, 1), generateAdventurer(1, 1), generateAdventurer(1, 1)]);
+          setMaterials({ iron: 50, wood: 50, leather: 40, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
+          setInventory([]); setGuildLevel(1); 
+          const newAdvs = [];
+          newAdvs.push(generateAdventurer(1, 1, newAdvs));
+          newAdvs.push(generateAdventurer(1, 1, newAdvs));
+          newAdvs.push(generateAdventurer(1, 1, newAdvs));
+          setAdventurers(newAdvs);
           setLogs(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
           setCraftLevel(1); setCraftExp(0); setUpgrades({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
           setStats({ crafted: 0, epicCrafted: 0, totalSales: 0 }); setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
-          setQuests([generateQuest(1), generateQuest(1), generateQuest(1)]); setVipState({ stage: 0, isActive: false });
+          setQuests([generateQuest(1, 'permanent', 1), generateQuest(1, 'permanent', 1), generateQuest(1, 'limited', 1), generateQuest(1, 'limited', 1)]); 
+          setVipState({ stage: 0, isActive: false });
           setActiveEvent(null); setEndingId(null); setBossReport(null); setConfirmReset(false);
+          showToast('データを初期化しました', 'success');
         } else {
           setConfirmReset(true); setTimeout(() => setConfirmReset(false), 3000);
         }
@@ -754,7 +818,7 @@
         addLog(`💰【市場卸し】${item.name} を市場へ流した。${sellPrice}G の利益と、名声 ${fameGained} を得た！`);
 
         if (FAME_THRESHOLDS.filter(t => (fame + fameGained) >= t).length > oldLevel) {
-            const newAdv = generateAdventurer(day, guildLevel);
+            const newAdv = generateAdventurer(day, guildLevel, adventurers);
             setAdventurers(prev => [...prev, newAdv]);
             addLog(`🌟【名声】市場に出回った武具の噂を聞きつけ、新たな冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた！`);
             showToast(`名声により新たな冒険者が来店！`, 'info');
@@ -791,13 +855,26 @@
         setStats(s => ({ ...s, totalSales: s.totalSales + quest.rewardMoney }));
         showToast(`依頼を達成しました！`, 'success');
         addLog(`【ギルド納品】依頼の品を納め、金貨 ${quest.rewardMoney}G と素材を受け取った。`);
-        setQuests(prev => prev.map(q => q.id === quest.id ? generateQuest(craftLevel) : q));
+        
+        setQuests(prev => prev.map(q => {
+          if (q.id === quest.id) {
+            if (quest.type === 'permanent') return generateQuest(craftLevel, 'permanent', day);
+            else return { ...q, isCompleted: true };
+          }
+          return q;
+        }));
       };
 
       const abandonQuest = (questId) => {
-        setQuests(prev => prev.map(q => q.id === questId ? generateQuest(craftLevel) : q));
+        const quest = quests.find(q => q.id === questId);
         showToast(`依頼を破棄しました`, 'info');
         addLog(`【ギルド】手に負えない依頼を破棄した。`);
+
+        if(quest && quest.type === 'permanent') {
+          setQuests(prev => prev.map(q => q.id === questId ? generateQuest(craftLevel, 'permanent', day) : q));
+        } else {
+          setQuests(prev => prev.filter(q => q.id !== questId));
+        }
       };
 
       const handleVipQuestComplete = () => {
@@ -892,8 +969,9 @@
           let activeAdvsCount = 0;
           let reportLogs = []; 
 
-          // ボス襲来判定 (10日ごと)
-          const targetBoss = BOSSES.find(b => b.day === day);
+          // ボス襲来判定 (10, 30, 50, 70, 100日目)
+          const targetBoss = [10, 30, 50, 70, 100].includes(day) ? BOSSES.find(b => b.day === day) : null;
+          
           if (targetBoss) {
             const aliveAdvs = newAdvs.filter(a => !a.isDead);
             const totalTownPower = aliveAdvs.reduce((sum, adv) => sum + calcTotalPowerInfo(adv).total, 0);
@@ -901,7 +979,6 @@
             addLog(`💀【ボス襲来】${targetBoss.name} が街に迫る！ 街の総戦力:${totalTownPower} vs ボス:${targetBoss.power}`);
             
             if (totalTownPower >= targetBoss.power) {
-              // ボス撃破
               let earnedMatsStr = [];
               for(const [matId, amt] of Object.entries(targetBoss.rewardMats)) {
                 earnedMaterials[matId] = (earnedMaterials[matId] || 0) + amt;
@@ -913,7 +990,6 @@
               addLog(`🎁【特別報酬】${targetBoss.rewardMoney}G と ${earnedMatsStr.join(', ')} を得た！`);
               setBossReport({ success: true, boss: targetBoss, money: targetBoss.rewardMoney, mats: earnedMatsStr.join(', ') });
             } else {
-              // ボス敗北
               addLog(`🔥【防衛失敗】冒険者たちは敗走し、街は大きな被害を受けた...`);
               newAdvs.forEach(adv => {
                 if (!adv.isDead) {
@@ -991,26 +1067,28 @@
               }
             });
           } else {
-             // ボス戦の日は通常レポートはスキップ
              newAdvs.forEach(adv => { if (!adv.isDead) activeAdvsCount++; });
           }
 
-          // 冒険者の補充
           if (day % 5 === 0 || activeAdvsCount < 3) {
-             const newAdv = generateAdventurer(day, guildLevel); newAdvs.push(newAdv);
+             const newAdv = generateAdventurer(day, guildLevel, newAdvs); 
+             newAdvs.push(newAdv);
              addLog(`🌟【新規来店】新しい冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた。`);
           }
 
           setMaterials(earnedMaterials); setAdventurers(newAdvs); setShopSelectedItem(null); setShopPricePct(100);
           
           let nextMoney = money;
-          if (day % 10 === 0) {
-            const tax = calcTax(day); nextMoney -= tax;
-            addLog(`📜【納税】徴税吏に店舗税 ${tax} G を納めた。`); setMoney(nextMoney);
+
+          // 納税タイミング (20, 40, 60, 80日目。100日目は免除)
+          if (day === 20 || day === 40 || day === 60 || day === 80) {
+            const tax = getTaxAmount(day); 
+            nextMoney -= tax;
+            addLog(`📜【納税】徴税吏に店舗税 ${tax} G を納めた。`); 
+            setMoney(nextMoney);
             if (nextMoney < 0) { setEndingId('bankrupt'); setIsTransitioning(false); setGameState('ending'); return; }
           }
 
-          // VIPクエスト発生判定
           if (!vipState.isActive && vipState.stage < VIP_QUESTS.length) {
             const nextVip = VIP_QUESTS[vipState.stage];
             if (fame >= nextVip.fameReq) {
@@ -1018,6 +1096,18 @@
               addLog(`👑【特命】${nextVip.client}の使者が訪れた。${nextVip.desc}とのことだ…！`);
             }
           }
+
+          // クエストの期限管理と補充
+          let nextQuests = quests.filter(q => q.type === 'permanent' || (q.type === 'limited' && !q.isCompleted && q.deadline >= day + 1));
+          const limitedCount = nextQuests.filter(q => q.type === 'limited').length;
+          for(let i=limitedCount; i < 2; i++) {
+              nextQuests.push(generateQuest(craftLevel, 'limited', day + 1));
+          }
+          const permCount = nextQuests.filter(q => q.type === 'permanent').length;
+          for(let i=permCount; i < 2; i++) {
+              nextQuests.push(generateQuest(craftLevel, 'permanent', day + 1));
+          }
+          setQuests(nextQuests);
 
           if (day >= 100) { checkEnding(nextMoney, newAdvs); setIsTransitioning(false); return; }
 
@@ -1048,7 +1138,9 @@
       // --- UIコンポーネント ---
 
       const renderHeader = () => {
-        const nextTaxDay = Math.ceil(day / 10) * 10;
+        const nextTaxDay = getNextTaxDay(day);
+        const daysUntilTax = nextTaxDay ? nextTaxDay - day : null;
+        
         return (
           <div className="flex-shrink-0 flex justify-between items-center p-3 bg-[#3E2723] text-[#F4EFE6] border-b-4 border-[#D4AF37] relative z-20">
             <div className="flex items-center gap-6">
@@ -1066,8 +1158,8 @@
                 <span className="font-bold text-white">⭐ {fame}</span>
               </div>
               <div className="bg-red-900/50 px-2 py-1 rounded border border-red-500/50 flex flex-col items-end hidden md:flex">
-                <span className="text-[10px] text-red-200">次回納税(あと{(nextTaxDay - day) === 0 ? '本日' : `${nextTaxDay - day}日`})</span>
-                <span className="font-bold text-red-100">{calcTax(nextTaxDay)} G</span>
+                <span className="text-[10px] text-red-200">次回納税{daysUntilTax !== null ? `(あと${daysUntilTax === 0 ? '本日' : `${daysUntilTax}日`})` : '(なし)'}</span>
+                <span className="font-bold text-red-100">{nextTaxDay ? getTaxAmount(nextTaxDay) : 0} G</span>
               </div>
               <div>Day: <span className="font-bold text-lg md:text-xl">{day}</span></div>
               <div>資金: <span className="font-bold text-lg md:text-xl text-[#D4AF37]">{money} G</span></div>
@@ -1087,6 +1179,7 @@
           <button onClick={() => setGameState('upgrade')} className={`text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'upgrade' ? 'bg-[#D4AF37] text-[#3E2723] font-bold' : 'hover:bg-white/10'}`}><span className="hidden md:inline">設備投資</span><span className="md:hidden text-xl">⚙️</span></button>
           <button onClick={() => setGameState('achievements')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'achievements' ? 'bg-[#D4AF37] text-[#3E2723] font-bold' : 'hover:bg-white/10'}`}><IconAchievement /><span className="hidden md:inline">実績</span>{achievements.some(a => a.unlocked && !a.claimed) && <span className="w-2 h-2 bg-red-500 rounded-full ml-1 animate-pulse"></span>}</button>
           <button onClick={() => setGameState('log')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'log' ? 'bg-[#D4AF37] text-[#3E2723] font-bold' : 'hover:bg-white/10'}`}><IconLog /><span className="hidden md:inline">工房日誌</span></button>
+          <button onClick={() => setGameState('help')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'help' ? 'bg-[#D4AF37] text-[#3E2723] font-bold' : 'hover:bg-white/10'}`}><IconHelp /><span className="hidden md:inline">遊び方</span></button>
           
           <div className="mt-4 hidden md:block">
             <h4 className="font-serif text-[#D4AF37] mb-2 border-b border-[#D4AF37] pb-1">素材在庫</h4>
@@ -1095,15 +1188,20 @@
             </ul>
           </div>
           <div className="mt-auto border-t border-[#D4AF37]/50 pt-4 space-y-2">
-            <button onClick={saveGame} className="w-full flex justify-center items-center gap-2 p-2 rounded bg-black/30 hover:bg-black/50 text-sm transition-all active:scale-95"><IconSave /> <span className="hidden md:inline">セーブ</span></button>
-            {hasSaveData && ( <button onClick={handleLoadClick} className={`w-full flex justify-center items-center gap-2 p-2 rounded text-sm transition-all active:scale-95 ${confirmLoad ? 'bg-red-600 text-white' : 'bg-black/30 hover:bg-black/50'}`}><span className="hidden md:inline">{confirmLoad ? '本当にロード？' : 'ロード'}</span>{confirmLoad && <span className="md:hidden">！</span>}</button> )}
+            <div className="text-[10px] text-gray-400 text-center mb-1 hidden md:block">※進行状況は自動保存されます</div>
+            <button onClick={resetGame} className={`w-full flex justify-center items-center gap-2 p-2 rounded text-sm transition-all active:scale-95 ${confirmReset ? 'bg-red-600 text-white' : 'border border-red-900 text-red-400 hover:bg-black/50'}`}>
+               <span className="hidden md:inline">{confirmReset ? '本当に消去？' : '記録の消去'}</span>
+               <span className="md:hidden">🗑️</span>
+            </button>
           </div>
         </div>
       );
 
       const renderMainMenu = () => {
         const currentDifficulty = getDungeonDifficulty(day);
-        const nextBoss = BOSSES.find(b => b.day > day);
+        const upcomingBossDays = [10, 30, 50, 70, 100];
+        const nextBossDay = upcomingBossDays.find(d => d >= day);
+        const nextBoss = nextBossDay ? BOSSES.find(b => b.day === nextBossDay) : null;
         const aliveAdvs = adventurers.filter(a => !a.isDead);
         const totalTownPower = aliveAdvs.reduce((sum, adv) => sum + calcTotalPowerInfo(adv).total, 0);
 
@@ -1156,7 +1254,7 @@
                          </div>
                          <div className="text-sm text-gray-600 flex justify-between items-center mb-3">
                            <span>戦闘力: <span className={`font-bold text-lg ml-1 ${powerColor}`}>{pwrInfo.total}</span></span>
-                           <span>予算: <span className="font-bold text-green-700">{a.money}G</span></span>
+                           <span>予算: <span className="font-bold text-green-700">{Math.floor(a.money * (1 + (upgrades.haggleLevel * 0.1)) * (1 + (a.trust / 100)))}G</span></span>
                          </div>
                          <div className="grid grid-cols-3 gap-1 text-[10px] text-center">
                            <div className={`bg-gray-100 p-1 rounded truncate ${a.equips.weapon?.durability <= 0 ? 'text-red-500 line-through' : ''}`}>{a.equips.weapon?.name || '-'}</div>
@@ -1465,6 +1563,51 @@
         </div>
       );
 
+      const renderHelpView = () => (
+        <div className="p-4 md:p-6 font-sans text-[#2C3E50] max-w-4xl mx-auto h-full flex flex-col fade-in">
+          <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0">
+            <span className="text-2xl">❓</span> 遊び方・ヘルプ
+          </h2>
+          <div className="space-y-6 overflow-y-auto pb-12 pr-4">
+            
+            <section className="bg-white p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#3E2723] border-b pb-2 mb-3">🗡️ ゲームの目的とセーブ</h3>
+              <p className="text-sm leading-relaxed text-gray-700">
+                あなたは街の鍛冶屋です。ダンジョンに潜る冒険者たちに武具を売り、資金を稼ぎましょう。<br/>
+                <span className="font-bold text-red-600">※このゲームは完全オートセーブです。</span> 行動するたびに自動で記録され、後戻りはできません。人生は一度きりです！<br/>
+                10日、30日...と節目の日にやってくるボスモンスターから街を防衛し、20日、40日...には徴税吏がやってきて多額の税金を徴収していくため、計画的に資金を貯める必要があります。
+              </p>
+            </section>
+
+            <section className="bg-white p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#3E2723] border-b pb-2 mb-3">🔨 工房と店舗（販売）</h3>
+              <p className="text-sm leading-relaxed text-gray-700 mb-3">
+                素材を消費して武具を作成し、冒険者に販売します。冒険者にはそれぞれ「<span className="font-bold text-green-700">適正重量</span>」があり、合わない装備（⚠️）を渡すと威力が半減します。逆に「<span className="font-bold text-yellow-600">得意装備（✨）</span>」を渡すと威力が1.3倍に跳ね上がります。
+              </p>
+            </section>
+
+            <section className="bg-white p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#3E2723] border-b pb-2 mb-3">🌟 名声と好感度のメリット</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
+                  <h4 className="font-bold text-indigo-900 mb-1">名声</h4>
+                  <p className="text-xs text-indigo-800">
+                    アイテムを「市場に卸す」と名声が上がります。名声が高まると新たな冒険者が来店したり、王室から莫大な報酬がもらえる<span className="font-bold text-red-600">特命依頼（VIPクエスト）</span>が舞い込みます。
+                  </p>
+                </div>
+                <div className="bg-green-50 p-3 rounded border border-green-100">
+                  <h4 className="font-bold text-green-900 mb-1">好感度</h4>
+                  <p className="text-xs text-green-800">
+                    良心的な価格で販売すると好感度が上がります。好感度が高いと<span className="font-bold">アイテムを買ってくれる予算枠</span>が増加し、探索から生還した際に、より珍しい素材を安い価格で店に卸してくれます。
+                  </p>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      );
+
       const renderReportView = () => {
         const reportStartLog = [...logs].reverse().find(l => l.startsWith("=== REPORT_START ==="));
         let reportData = [];
@@ -1553,11 +1696,6 @@
                 <button onClick={resetGame} className={`font-bold px-8 py-3 rounded transition-all active:scale-95 text-lg ${confirmReset ? 'bg-red-600 text-white' : 'bg-[#D4AF37] text-[#3E2723] hover:bg-yellow-500'}`}>
                   {confirmReset ? '本当にリセット？' : '最初からやり直す'}
                 </button>
-                {hasSaveData && (
-                  <button onClick={clearSave} className={`px-6 py-3 rounded transition-all active:scale-95 ${confirmClear ? 'bg-red-700 text-white border-red-700' : 'border border-red-900 text-red-400 hover:text-white'}`}>
-                    {confirmClear ? '記録を完全に消去？' : '記録を消去'}
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -1638,6 +1776,8 @@
         );
       };
 
+      if (!isLoaded) return null;
+
       return (
         <div className="flex flex-col h-[100dvh] bg-[#F4EFE6] overflow-hidden">
           {toast.visible && (
@@ -1666,6 +1806,7 @@
               {gameState === 'achievements' && renderAchievementsView()}
               {gameState === 'log' && renderLogView()}
               {gameState === 'report' && renderReportView()}
+              {gameState === 'help' && renderHelpView()}
               {gameState === 'ending' && renderEndingView()}
             </main>
           </div>
