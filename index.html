@@ -273,14 +273,11 @@
     const generateAdventurer = (currentDay, guildLvl, existingAdvs = []) => {
       const aliveNames = existingAdvs.filter(a => !a.isDead).map(a => a.name);
       
-      // すでに生存している名前を除外して候補を作成
       const availableNames = ADVENTURER_NAMES.filter(name => !aliveNames.includes(name));
       let name;
-      
       if (availableNames.length > 0) {
         name = availableNames[Math.floor(Math.random() * availableNames.length)];
       } else {
-        // 候補がない場合は「〜世」などをつけて重複を避ける（保険）
         const baseName = ADVENTURER_NAMES[Math.floor(Math.random() * ADVENTURER_NAMES.length)];
         name = baseName + (Math.floor(Math.random() * 100) + 2).toString() + "世";
       }
@@ -533,6 +530,7 @@
       // タブフィルター用
       const [craftFilter, setCraftFilter] = useState('all'); 
       const [shopFilter, setShopFilter] = useState('all');
+      const [logFilter, setLogFilter] = useState('all'); // ログのフィルタリング用
 
       // ボス戦結果
       const [bossReport, setBossReport] = useState(null);
@@ -549,7 +547,7 @@
       // オートロード（初回のみ）
       useEffect(() => {
         try {
-          const saved = localStorage.getItem('blacksmith_save_v16');
+          const saved = localStorage.getItem('blacksmith_save_v17');
           if (saved) {
             const data = JSON.parse(saved);
             setDay(data.day); setMoney(data.money); setFame(data.fame || 0);
@@ -576,7 +574,7 @@
         const timer = setTimeout(() => {
           try {
             const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent };
-            localStorage.setItem('blacksmith_save_v16', JSON.stringify(data));
+            localStorage.setItem('blacksmith_save_v17', JSON.stringify(data));
           } catch (e) {
             console.warn("Auto-save failed:", e);
           }
@@ -586,7 +584,7 @@
 
       useEffect(() => {
         if (gameState === 'log' && logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-      }, [logs, gameState]);
+      }, [logs, gameState, logFilter]); // logFilter変更時もスクロール
 
       useEffect(() => { setShopPricePct(100); }, [shopSelectedItem]);
 
@@ -647,7 +645,7 @@
 
       const resetGame = () => {
         if (confirmReset) {
-          try { localStorage.removeItem('blacksmith_save_v16'); } catch(e){}
+          try { localStorage.removeItem('blacksmith_save_v17'); } catch(e){}
           setGameState('menu'); setDay(1); setMoney(1500); setFame(0);
           setMaterials({ iron: 50, wood: 50, leather: 40, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
           setInventory([]); setGuildLevel(1); 
@@ -1012,8 +1010,14 @@
           const rewardMod = activeEnvEvent ? activeEnvEvent.rewardMod : 1.0;
           const buyMod = activeEnvEvent ? activeEnvEvent.buyPriceMod : 1.0;
 
-          // 通常探索処理
+          // 通常探索処理のサマリー化
           if (!targetBoss) {
+            let totalBuyPrice = 0; 
+            let totalBoughtMats = {};
+            let deadNames = [];
+            let awokenNames = [];
+            let aliveCount = 0;
+
             newAdvs.forEach(adv => {
               if (adv.isDead) return;
               activeAdvsCount++; adv.aliveDays += 1;
@@ -1022,7 +1026,7 @@
                 const oldClass = adv.class;
                 adv.class = CLASS_DATA[adv.class].advanced;
                 adv.basePower += 50; 
-                addLog(`✨【覚醒】${adv.name}が「${adv.class}」となった！`); 
+                awokenNames.push(`${adv.name}(${adv.class})`);
               }
 
               const totalPower = calcTotalPowerInfo(adv).total;
@@ -1030,15 +1034,15 @@
               
               if (Math.random() * 100 > survivalRate) {
                 adv.isDead = true;
-                addLog(`🩸【悲劇】${adv.name}は帰還しなかった...`);
+                deadNames.push(adv.name);
                 reportLogs.push({ name: adv.name, class: adv.class, isDead: true, speech: getReportSpeech(adv, 0) });
               } else {
+                aliveCount++;
                 const rewardMoney = Math.floor((Math.random() * 100 + day * 15) * (1 + upgrades.haggleLevel * 0.2) * rewardMod);
                 adv.money += rewardMoney;
 
                 ['weapon', 'armor', 'shield'].forEach(slot => { if (adv.equips[slot] && adv.equips[slot].durability > 0) adv.equips[slot].durability -= 1; });
 
-                let totalBuyPrice = 0; let droppedMatsStr = [];
                 const numDrops = Math.floor(Math.random() * 3) + 1; 
 
                 for (let i = 0; i < numDrops; i++) {
@@ -1053,19 +1057,32 @@
                   const discount = (upgrades.haggleLevel * 0.1) + (adv.trust / 200);
                   const buyPrice = Math.floor(dropMat.basePrice * dropAmt * Math.max(0.3, (1.2 - discount)) * buyMod);
                   
-                  if (money >= totalBuyPrice + buyPrice && Math.random() * 100 < (adv.trust + 50)) { 
-                     totalBuyPrice += buyPrice; earnedMaterials[dropMat.id] = (earnedMaterials[dropMat.id] || 0) + dropAmt;
-                     droppedMatsStr.push(`${dropMat.name}x${dropAmt}`);
+                  if (money - totalBuyPrice >= buyPrice && Math.random() * 100 < (adv.trust + 50)) { 
+                     totalBuyPrice += buyPrice; 
+                     earnedMaterials[dropMat.id] = (earnedMaterials[dropMat.id] || 0) + dropAmt;
+                     totalBoughtMats[dropMat.id] = (totalBoughtMats[dropMat.id] || 0) + dropAmt;
                   }
                 }
-                if (droppedMatsStr.length > 0) {
-                   setMoney(m => m - totalBuyPrice);
-                   addLog(`【買取】${adv.name}から ${droppedMatsStr.join(', ')} を計 ${totalBuyPrice}G で買い取った。`);
-                } else { addLog(`【生還】${adv.name}が無事帰還し ${rewardMoney}G を得た。`); }
 
                 reportLogs.push({ name: adv.name, class: adv.class, isDead: false, speech: getReportSpeech(adv, rewardMoney) });
               }
             });
+
+            if (awokenNames.length > 0) {
+              addLog(`✨【覚醒】${awokenNames.join('、')} が上位職に覚醒した！`);
+            }
+            if (deadNames.length > 0) {
+              addLog(`🩸【悲劇】${deadNames.join('、')} がダンジョンから帰還しなかった...`);
+            }
+
+            let boughtMatsStr = Object.entries(totalBoughtMats).map(([id, amt]) => `${MATERIALS[id].name}x${amt}`).join(', ');
+            let summaryStr = `【探索】${aliveCount}人が無事帰還。`;
+            if (totalBuyPrice > 0) {
+              summaryStr += `素材(${boughtMatsStr})を計 ${totalBuyPrice}G で買い取った。`;
+              setMoney(m => m - totalBuyPrice);
+            }
+            addLog(summaryStr);
+
           } else {
              newAdvs.forEach(adv => { if (!adv.isDead) activeAdvsCount++; });
           }
@@ -1329,8 +1346,9 @@
         return (
           <div className="p-4 md:p-6 font-sans text-[#2C3E50] h-full flex flex-col max-w-6xl mx-auto fade-in">
             <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex-shrink-0">店舗・市場</h2>
-            <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 pb-6">
-              <div className="lg:w-1/3 flex flex-col bg-white rounded shadow-md border border-[#3E2723]/20 overflow-hidden">
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 min-h-0 pb-6">
+              
+              <div className="lg:w-1/3 flex-1 lg:flex-none flex flex-col bg-white rounded shadow-md border border-[#3E2723]/20 overflow-hidden min-h-0">
                 <div className="p-3 border-b bg-gray-50 flex flex-col gap-2">
                   <h3 className="text-lg font-bold">在庫一覧</h3>
                   <div className="flex gap-1">
@@ -1356,7 +1374,7 @@
                 </div>
               </div>
 
-              <div className="lg:w-2/3 flex flex-col bg-white rounded shadow-md border border-[#3E2723]/20 overflow-hidden">
+              <div className="lg:w-2/3 flex-1 lg:flex-none flex flex-col bg-white rounded shadow-md border border-[#3E2723]/20 overflow-hidden min-h-0">
                 <h3 className="text-xl p-4 font-bold bg-gray-50 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <span>接客・市場への売却</span>
                   {shopSelectedItem && <button onClick={() => handleMarketSell(shopSelectedItem)} className="text-sm bg-indigo-600 text-white px-4 py-1.5 rounded hover:bg-indigo-700 shadow flex items-center gap-2 active:scale-95 transition-all"><span className="font-bold">市場に卸す</span> <span className="text-indigo-200">({Math.floor(shopSelectedItem.baseValue * 0.8)}G / ⭐+{previewFame})</span></button>}
@@ -1547,21 +1565,40 @@
         </div>
       );
 
-      const renderLogView = () => (
-        <div className="p-4 md:p-6 font-sans text-[#2C3E50] h-full flex flex-col max-w-4xl mx-auto fade-in">
-          <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0"><IconLog /> 工房日誌</h2>
-          <div className="bg-[#3E2723] text-[#F4EFE6] rounded shadow-md border border-[#D4AF37] flex flex-col overflow-hidden flex-1 min-h-0">
-            <div className="overflow-y-auto p-4 md:p-6 space-y-2 text-sm md:text-base flex-1 font-mono">
-              {logs.filter(l => !l.startsWith("=== REPORT_START ===")).map((l, i) => (
-                <div key={i} className={`py-1 border-b border-white/10 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【警告】') || l.includes('【納税】') || l.includes('【製作失敗】') || l.includes('【交渉決裂】') ? 'text-red-400' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') || l.includes('【恩恵】') ? 'text-yellow-300 font-bold' : l.includes('✨') || l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') || l.includes('王室御用達') ? 'text-blue-300 font-bold' : l.includes('💰') || l.includes('📦') || l.includes('特別報酬') ? 'text-green-300' : 'text-gray-200'}`}>
-                  {l}
-                </div>
-              ))}
-              <div ref={logsEndRef} />
+      const renderLogView = () => {
+        const filteredLogs = logs.filter(l => {
+          if (l.startsWith("=== REPORT_START ===")) return false;
+          if (logFilter === 'all') return true;
+          if (logFilter === 'important') return l.includes('【覚醒】') || l.includes('【悲劇】') || l.includes('【ボス') || l.includes('【防衛') || l.includes('【恩恵】') || l.includes('【特命】') || l.includes('王室御用達') || l.includes('【イベント】') || l.includes('【実績') || l.includes('【警告】');
+          if (logFilter === 'trade') return l.includes('【売却】') || l.includes('【買取】') || l.includes('【修理】') || l.includes('【市場卸し】') || l.includes('【仕入】') || l.includes('【ギルド納品】') || l.includes('【納税】') || l.includes('【ギルド投資】') || l.includes('【探索】') || l.includes('【新規来店】');
+          if (logFilter === 'craft') return l.includes('【製作') || l.includes('【名作誕生】') || l.includes('【神業】') || l.includes('【成長】') || l.includes('【設備投資】');
+          return true;
+        });
+
+        return (
+          <div className="p-4 md:p-6 font-sans text-[#2C3E50] h-full flex flex-col max-w-4xl mx-auto fade-in">
+            <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0"><IconLog /> 工房日誌</h2>
+            
+            <div className="flex gap-2 mb-4 flex-shrink-0">
+              <button onClick={() => setLogFilter('all')} className={`px-4 py-1 border rounded font-bold text-sm ${logFilter === 'all' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}>すべて</button>
+              <button onClick={() => setLogFilter('important')} className={`px-4 py-1 border rounded font-bold text-sm ${logFilter === 'important' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}>重要</button>
+              <button onClick={() => setLogFilter('trade')} className={`px-4 py-1 border rounded font-bold text-sm ${logFilter === 'trade' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}>経営・探索</button>
+              <button onClick={() => setLogFilter('craft')} className={`px-4 py-1 border rounded font-bold text-sm ${logFilter === 'craft' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}>工房作業</button>
+            </div>
+
+            <div className="bg-[#3E2723] text-[#F4EFE6] rounded shadow-md border border-[#D4AF37] flex flex-col overflow-hidden flex-1 min-h-0">
+              <div className="overflow-y-auto p-4 md:p-6 space-y-2 text-sm md:text-base flex-1 font-mono">
+                {filteredLogs.map((l, i) => (
+                  <div key={i} className={`py-1 border-b border-white/10 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【警告】') || l.includes('【納税】') || l.includes('【製作失敗】') || l.includes('【交渉決裂】') ? 'text-red-400' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') || l.includes('【恩恵】') ? 'text-yellow-300 font-bold' : l.includes('✨') || l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') || l.includes('王室御用達') ? 'text-blue-300 font-bold' : l.includes('💰') || l.includes('📦') || l.includes('特別報酬') ? 'text-green-300' : 'text-gray-200'}`}>
+                    {l}
+                  </div>
+                ))}
+                <div ref={logsEndRef} />
+              </div>
             </div>
           </div>
-        </div>
-      );
+        );
+      };
 
       const renderHelpView = () => (
         <div className="p-4 md:p-6 font-sans text-[#2C3E50] max-w-4xl mx-auto h-full flex flex-col fade-in">
