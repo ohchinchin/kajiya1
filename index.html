@@ -203,10 +203,12 @@
     ];
 
     const RANDOM_EVENTS = [
-      { id: 'monster_surge', name: '魔物活性化', desc: '森の奥から魔獣の遠吠えが響く...。危険だが、持ち帰る金貨は増えるだろう。', diffMod: 20, rewardMod: 1.5, buyPriceMod: 1.0 },
-      { id: 'peaceful', name: '小春日和', desc: '魔物も眠気を誘われるような穏やかな日。安全だが、良い素材は期待できない。', diffMod: -15, rewardMod: 0.8, buyPriceMod: 1.0 },
+      { id: 'monster_surge', name: '魔物活性化', desc: '森の奥から魔獣の遠吠えが響く...。危険だが、持ち帰る金貨は増えるだろう。', diffMod: 40, rewardMod: 1.5, buyPriceMod: 1.0 },
+      { id: 'peaceful', name: '小春日和', desc: '魔物も眠気を誘われるような穏やかな日。安全だが、良い素材は期待できない。', diffMod: -20, rewardMod: 0.8, buyPriceMod: 1.0 },
       { id: 'material_boom', name: '王都からの特需', desc: '王族が素材をかき集めているらしい。冒険者からの買取価格が跳ね上がる。', diffMod: 0, rewardMod: 1.0, buyPriceMod: 2.0 },
       { id: 'material_crash', name: '素材の暴落', desc: '隣町で大鉱脈が発見された。市場に素材が溢れ、安値で買い叩ける。', diffMod: 0, rewardMod: 1.0, buyPriceMod: 0.5 },
+      { id: 'thief_band', name: '野盗の跋扈', desc: '街道に野盗が出没しているらしい。冒険者の生存率が下がり、稼ぎも減ってしまう。', diffMod: 30, rewardMod: 0.7, buyPriceMod: 1.0 },
+      { id: 'holy_blessing', name: '大精霊の加護', desc: '空が神秘的な光に包まれている。今日は何があっても生還できそうな気がする。', diffMod: -50, rewardMod: 1.0, buyPriceMod: 1.0 },
     ];
 
     const BOSSES = [
@@ -214,7 +216,7 @@
       { day: 30, name: "古代遺跡のゴーレム", power: 2000, rewardMoney: 15000, rewardMats: { mithril: 3, high_magic_stone: 3 } },
       { day: 50, name: "業火の古竜", power: 6000, rewardMoney: 40000, rewardMats: { orichalcum: 2, adamantite: 2 } },
       { day: 70, name: "堕ちた天使", power: 15000, rewardMoney: 100000, rewardMats: { god_tear: 2, adamantite: 5 } },
-      { day: 100, name: "破壊神", power: 40000, rewardMoney: 500000, rewardMats: { god_tear: 10 } },
+      { day: 100, name: "破壊神", power: 35000, rewardMoney: 500000, rewardMats: { god_tear: 10 } },
     ];
 
     const getTaxAmount = (day) => {
@@ -247,7 +249,7 @@
       { id: 'fame_100', name: '街の有名店', desc: '名声を 100 稼ぐ', condition: (state) => state.fame >= 100, rewardText: '霊木 x5', onClaim: (s) => { s.materials.fine_wood += 5; }, claimed: false },
       { id: 'sell_10000', name: '商売繁盛', desc: '累計で 10,000 G 売り上げる', condition: (state) => state.stats.totalSales >= 10000, rewardText: '魔石 x5', onClaim: (s) => { s.materials.magic_stone += 5; }, claimed: false },
       { id: 'trust_100', name: '無二の親友', desc: '冒険者1人の好感度を MAX(100) にする', condition: (state) => state.adventurers.some(a => a.trust >= 100), rewardText: 'ミスリル x2', onClaim: (s) => { s.materials.mithril += 2; }, claimed: false },
-      { id: 'boss_1', name: '街の守護者', desc: '最初のボスを討伐する', condition: (state) => state.day > 10, rewardText: '鋼鉄 x5', onClaim: (s) => { s.materials.steel += 5; }, claimed: false },
+      { id: 'boss_1', name: '街の守護者', desc: '最初のボスを討伐する', condition: (state) => state.stats.bossDefeated >= 1, rewardText: '鋼鉄 x5', onClaim: (s) => { s.materials.steel += 5; }, claimed: false },
       { id: 'money_100k', name: '莫大な資産', desc: '所持金が 100,000 G を超える', condition: (state) => state.money >= 100000, rewardText: '神の涙 x3', onClaim: (s) => { s.materials.god_tear += 3; }, claimed: false },
     ];
 
@@ -269,7 +271,6 @@
       };
     };
 
-    // existingAdvs には現在生存している全冒険者のリストを渡す
     const generateAdventurer = (currentDay, guildLvl, existingAdvs = []) => {
       const aliveNames = existingAdvs.filter(a => !a.isDead).map(a => a.name);
       
@@ -290,7 +291,7 @@
       }
       
       const guildBonus = (guildLvl - 1) * 15; 
-      const basePower = Math.floor(Math.random() * 10) + 10 + Math.floor(currentDay * 1.5) + guildBonus;
+      const basePower = Math.floor(Math.random() * 10) + 10 + Math.floor(currentDay * 2) + guildBonus;
       const money = 200 + Math.floor(Math.random() * 200) + (currentDay * 30) + ((guildLvl - 1) * 200);
       const optWeight = CLASS_DATA[advClass].weight;
       
@@ -491,26 +492,32 @@
     // --- メインアプリケーション ---
     function App() {
       const [isLoaded, setIsLoaded] = useState(false);
-      const [gameState, setGameState] = useState('menu'); 
+      const [gameState, setGameState] = useState(() => {
+        try {
+          if (localStorage.getItem('blacksmith_save_v21')) return 'menu';
+        } catch(e) {}
+        return 'opening';
+      }); 
       
-      const initAdvs = [];
-      initAdvs.push(generateAdventurer(1, 1, initAdvs));
-      initAdvs.push(generateAdventurer(1, 1, initAdvs));
-      initAdvs.push(generateAdventurer(1, 1, initAdvs));
-
       const [day, setDay] = useState(1);
       const [money, setMoney] = useState(1500); 
       const [fame, setFame] = useState(0); 
       const [materials, setMaterials] = useState({ iron: 50, wood: 50, leather: 40, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
       const [inventory, setInventory] = useState([]);
       const [guildLevel, setGuildLevel] = useState(1);
+      
+      const initAdvs = [];
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
       const [adventurers, setAdventurers] = useState(initAdvs);
+      
       const [logs, setLogs] = useState(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
       
       const [craftLevel, setCraftLevel] = useState(1);
       const [craftExp, setCraftExp] = useState(0);
       const [upgrades, setUpgrades] = useState({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
-      const [stats, setStats] = useState({ crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0 }); 
+      const [stats, setStats] = useState({ crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0, bossDefeated: 0 }); 
       const [achievements, setAchievements] = useState(() => INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
 
       const [quests, setQuests] = useState([
@@ -549,7 +556,7 @@
       // オートロード（初回のみ）
       useEffect(() => {
         try {
-          const saved = localStorage.getItem('blacksmith_save_v19');
+          const saved = localStorage.getItem('blacksmith_save_v21');
           if (saved) {
             const data = JSON.parse(saved);
             setDay(data.day); setMoney(data.money); setFame(data.fame || 0);
@@ -558,7 +565,7 @@
             setUpgrades(data.upgrades); setCraftLevel(data.craftLevel || 1); setCraftExp(data.craftExp || 0);
             setGuildLevel(data.guildLevel || 1); setVipState(data.vipState || { stage: 0, isActive: false });
             setActiveEvent(data.activeEvent || null);
-            setStats(data.stats || { crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0 });
+            setStats(data.stats || { crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0, bossDefeated: 0 });
             setAchievements(INITIAL_ACHIEVEMENTS.map(baseAch => {
               const savedAch = (data.achievements || []).find(a => a.id === baseAch.id);
               return { ...baseAch, ...(savedAch || {}) };
@@ -572,17 +579,17 @@
 
       // 完全オートセーブ機構
       useEffect(() => {
-        if (!isLoaded) return;
+        if (!isLoaded || gameState === 'opening') return; 
         const timer = setTimeout(() => {
           try {
             const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent };
-            localStorage.setItem('blacksmith_save_v19', JSON.stringify(data));
+            localStorage.setItem('blacksmith_save_v21', JSON.stringify(data));
           } catch (e) {
             console.warn("Auto-save failed:", e);
           }
         }, 1000); 
         return () => clearTimeout(timer);
-      }, [day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent, isLoaded]);
+      }, [day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent, isLoaded, gameState]);
 
       useEffect(() => {
         if (gameState === 'log' && logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -647,8 +654,8 @@
 
       const resetGame = () => {
         if (confirmReset) {
-          try { localStorage.removeItem('blacksmith_save_v19'); } catch(e){}
-          setGameState('menu'); setDay(1); setMoney(1500); setFame(0);
+          try { localStorage.removeItem('blacksmith_save_v21'); } catch(e){}
+          setDay(1); setMoney(1500); setFame(0);
           setMaterials({ iron: 50, wood: 50, leather: 40, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
           setInventory([]); setGuildLevel(1); 
           const newAdvs = [];
@@ -658,12 +665,13 @@
           setAdventurers(newAdvs);
           setLogs(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
           setCraftLevel(1); setCraftExp(0); setUpgrades({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
-          setStats({ crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0 }); setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
+          setStats({ crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0, bossDefeated: 0 }); 
+          setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
           setQuests([generateQuest(1, 'permanent', 1), generateQuest(1, 'permanent', 1), generateQuest(1, 'limited', 1), generateQuest(1, 'limited', 1)]); 
           setVipState({ stage: 0, isActive: false });
           setActiveEvent(null); setEndingId(null); setBossReport(null); setConfirmReset(false);
           setCraftFilter('all'); setCraftWeightFilter('all'); setShopFilter('all'); setShopWeightFilter('all');
-          showToast('データを初期化しました', 'success');
+          setGameState('opening'); 
         } else {
           setConfirmReset(true); setTimeout(() => setConfirmReset(false), 3000);
         }
@@ -910,16 +918,21 @@
             desc: "「ヘッヘッヘ…旦那、良いモン入ってまっせ。500Gでどうだい？」",
             choices: [
               { text: "箱を買う (500G)", onSelect: () => {
-                  if (money >= 500) {
-                    setMoney(m => m - 500);
-                    if (Math.random() > 0.5) {
-                      setMaterials(m => ({ ...m, magic_stone: m.magic_stone + 3 }));
-                      addLog("🎁【イベント】箱の中身は『魔石x3』だった！良い買い物だ。");
+                  setMoney(currentMoney => {
+                    if (currentMoney >= 500) {
+                      if (Math.random() > 0.5) {
+                        setMaterials(m => ({ ...m, magic_stone: m.magic_stone + 3 }));
+                        addLog("🎁【イベント】箱の中身は『魔石x3』だった！良い買い物だ。");
+                      } else {
+                        setMaterials(m => ({ ...m, wood: m.wood + 1 }));
+                        addLog("🎁【イベント】箱の中身は『木材x1』だった…騙された！");
+                      }
+                      return currentMoney - 500;
                     } else {
-                      setMaterials(m => ({ ...m, wood: m.wood + 1 }));
-                      addLog("🎁【イベント】箱の中身は『木材x1』だった…騙された！");
+                      addLog("🎁【イベント】金が足りず商人は去っていった。");
+                      return currentMoney;
                     }
-                  } else { addLog("🎁【イベント】金が足りず商人は去っていった。"); }
+                  });
                 } 
               },
               { text: "追い払う", onSelect: () => { addLog("🎁【イベント】怪しい商人を追い払った。"); } }
@@ -930,10 +943,16 @@
             desc: "駆け出しの冒険者が頭を下げている。「どうしても防具が必要なんです！200G、貸してくれませんか？」",
             choices: [
               { text: "金を貸す (200G)", onSelect: () => {
-                  if (money >= 200) {
-                    setMoney(m => m - 200); setFame(f => f + 15);
-                    addLog("🤝【イベント】若者に200G貸してやった。街での評判（名声+15）が少し上がったようだ。");
-                  } else { addLog("🤝【イベント】金がなく、申し出を断った。"); }
+                  setMoney(currentMoney => {
+                    if (currentMoney >= 200) {
+                      setFame(f => f + 15);
+                      addLog("🤝【イベント】若者に200G貸してやった。街での評判（名声+15）が少し上がったようだ。");
+                      return currentMoney - 200;
+                    } else {
+                      addLog("🤝【イベント】金がなく、申し出を断った。");
+                      return currentMoney;
+                    }
+                  });
                 }
               },
               { text: "断る", onSelect: () => { addLog("🤝【イベント】うちは金貸しじゃない、と断った。"); } }
@@ -950,10 +969,83 @@
               },
               { text: "しっかり寝る", onSelect: () => { addLog("💡【イベント】無理は禁物だ。布団に入った。"); } }
             ]
+          },
+          {
+            title: "一攫千金のギャンブル",
+            desc: "胡散臭い男がサイコロゲームを持ちかけてきた。「1000G賭けてみないか？ 勝てば倍だ！」",
+            choices: [
+              { text: "勝負する (1000G)", onSelect: () => { 
+                  setMoney(currentMoney => {
+                    if(currentMoney >= 1000) {
+                       if(Math.random() > 0.5) { addLog("🎲 見事勝利し、1000G儲けた！"); return currentMoney + 1000; }
+                       else { addLog("🎲 イカサマか！？ 1000Gすってしまった..."); return currentMoney - 1000; }
+                    } else { addLog("金が足りないと言ったら男は鼻で笑って去っていった。"); return currentMoney; }
+                  });
+                }
+              },
+              { text: "追い払う", onSelect: () => { addLog("仕事の邪魔だ、と男を追い払った。"); } }
+            ]
+          },
+          {
+            title: "裏ルートの取引",
+            desc: "フードを目深に被った男が囁く。「王城から横流しされた『オリハルコン』だ。1000Gでどうだ？ただし、バレたらお前の名も傷つくぜ」",
+            choices: [
+              { text: "買い取る (1000G / 名声-50)", onSelect: () => {
+                  setMoney(currentMoney => {
+                    if(currentMoney >= 1000) {
+                       setFame(f => Math.max(0, f - 50)); 
+                       setMaterials(m=>({...m, orichalcum: m.orichalcum+1}));
+                       addLog("🤫【裏取引】名声を犠牲にして、オリハルコンを手に入れた。");
+                       return currentMoney - 1000;
+                    } else { addLog("金が足りないようだ。"); return currentMoney; }
+                  });
+              }},
+              { text: "断る", onSelect: () => { addLog("真っ当な商売しかしないと断った。"); } }
+            ]
+          },
+          {
+            title: "孤児からの贈り物",
+            desc: "薄汚れた孤児が、拾ったという奇妙な石を差し出してきた。「おじちゃん、これ買って！」",
+            choices: [
+              { text: "100Gで買ってやる", onSelect: () => {
+                  setMoney(currentMoney => {
+                    if(currentMoney >= 100) {
+                       if(Math.random() > 0.3) { setMaterials(m=>({...m, magic_stone: m.magic_stone+2})); addLog("🎁【イベント】孤児から買い取った石は『魔石x2』だった。"); }
+                       else { setMaterials(m=>({...m, god_tear: m.god_tear+1})); addLog("🎁【奇跡】孤児から買い取った石を磨くと、なんと『神の涙』になった！"); }
+                       return currentMoney - 100;
+                    } else { addLog("手持ちがなく、ごめんよと謝った。"); return currentMoney; }
+                  });
+              }},
+              { text: "ただの石ころだと教える", onSelect: () => { addLog("孤児はしょんぼりして帰っていった。"); } }
+            ]
+          },
+          {
+            title: "素材問屋の視察",
+            desc: "素材問屋の主人が工房を訪れた。「日頃の付き合いだ。少しばかりサービスしよう」",
+            choices: [
+              { text: "話を聞く", onSelect: () => {
+                  setMaterials(m=>({...m, iron: m.iron+20, wood: m.wood+20}));
+                  addLog("📦【イベント】問屋の主人から、鉄鉱石x20 と 木材x20 を無償で譲ってもらった！");
+              }}
+            ]
+          },
+          {
+            title: "ギルドの設備修繕依頼",
+            desc: "ギルド長から直々の頼みだ。「ギルドの訓練用ダミーを直してほしい。報酬は弾むぞ」",
+            choices: [
+              { text: "引き受ける (鉄鉱石x10 消費)", onSelect: () => {
+                  if (materials.iron >= 10) {
+                    setMaterials(m=>({...m, iron: m.iron - 10}));
+                    setMoney(m=>m+800);
+                    addLog("🛠️【イベント】鉄鉱石を消費して修繕を終えた。800Gの報酬を得た！");
+                  } else { addLog("鉄鉱石が足りず、断らざるを得なかった。"); }
+              }},
+              { text: "忙しいと断る", onSelect: () => { addLog("今は工房の仕事で手一杯だ。"); } }
+            ]
           }
         ];
         
-        if (Math.random() < 0.25) { 
+        if (Math.random() < 0.3) { 
           setDailyEvent(events[Math.floor(Math.random() * events.length)]);
         }
       };
@@ -991,6 +1083,7 @@
               }
               currentMoney += targetBoss.rewardMoney;
               setFame(f => f + 100);
+              setStats(s => ({ ...s, bossDefeated: (s.bossDefeated || 0) + 1 }));
               addLog(`🎉【ボス討伐】冒険者たちは協力し、${targetBoss.name}を討ち果たした！`);
               addLog(`🎁【特別報酬】${targetBoss.rewardMoney}G と ${earnedMatsStr.join(', ')} を得た！`);
               setBossReport({ success: true, boss: targetBoss, money: targetBoss.rewardMoney, mats: earnedMatsStr.join(', ') });
@@ -1037,7 +1130,11 @@
               }
 
               const totalPower = calcTotalPowerInfo(adv).total;
-              let survivalRate = Math.max(5, Math.min(95, 40 + (totalPower - diffScore) * 1.5 + (upgrades.shopLevel * 5)));
+              
+              // 割合によるマイルドな生存確率計算
+              const powerRatio = (totalPower - diffScore) / Math.max(1, diffScore);
+              const survivalBase = 60 + (powerRatio * 50);
+              let survivalRate = Math.max(5, Math.min(95, survivalBase + (upgrades.shopLevel * 5)));
               
               if (Math.random() * 100 > survivalRate) {
                 adv.isDead = true;
@@ -1171,6 +1268,24 @@
       };
 
       // --- UIコンポーネント ---
+      const renderOpeningView = () => (
+        <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center z-50 p-6 overflow-y-auto fade-in">
+          <div className="max-w-2xl w-full text-center">
+            <h1 className="text-5xl md:text-6xl font-serif text-[#D4AF37] mb-8 tracking-widest border-b border-[#D4AF37] pb-4">Rustic Forge</h1>
+            <div className="text-base md:text-lg leading-loose text-gray-300 space-y-4 mb-12 bg-white/5 p-8 rounded border border-[#3E2723] shadow-inner text-left">
+              <p>ここは辺境の街。迫りくる魔物の脅威に対抗できるのは、命知らずの冒険者たちだけだ。</p>
+              <p>あなたは剣を振るうことはできない。しかし、かつて名工と呼ばれた親方から、この小さな工房を受け継いだ。</p>
+              <p>伝説によれば、100日後に「<span className="text-red-500 font-bold">破壊神</span>」が目覚め、この街を飲み込むという。</p>
+              <p>それまでに、彼らに最高の武具を提供し、街の防衛力を底上げしなければならない。</p>
+              <p>もちろん、タダでとは言わない。生き残るためには、徴税吏に納める重い税金も稼ぐ必要がある。</p>
+              <p className="text-[#D4AF37] font-bold text-center mt-8 text-xl">鉄を打ち、富を築き、街を救え。</p>
+            </div>
+            <button onClick={() => setGameState('menu')} className="bg-[#D4AF37] text-[#3E2723] hover:bg-yellow-500 font-bold px-10 py-4 rounded transition-all active:scale-95 text-xl shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+              工房の扉を開ける (Day 1)
+            </button>
+          </div>
+        </div>
+      );
 
       const renderHeader = () => {
         const nextTaxDay = getNextTaxDay(day);
@@ -1680,6 +1795,14 @@
               </div>
             </section>
 
+            <section className="bg-white p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#3E2723] border-b pb-2 mb-3">📊 ボス戦と生存確率</h3>
+              <p className="text-sm leading-relaxed text-gray-700">
+                <span className="font-bold">ボスの撃破判定:</span> 街にいる生存冒険者全員の「総合戦闘力」の合計値が、ボスの戦闘力を上回っていれば撃破成功となります。<br/>
+                <span className="font-bold">冒険者の生存確率:</span> 個々の冒険者がダンジョンから生還できる確率は、ダンジョンの推奨戦闘力と自身の戦闘力の「割合（比率）」で計算されます。推奨戦闘力を上回っていれば生存率は上がり、下回っていれば急激に下がります。
+              </p>
+            </section>
+
           </div>
         </div>
       );
@@ -1754,21 +1877,79 @@
         };
         const currentEnd = endData[endingId] || endData['normal'];
         const aliveCount = adventurers.filter(a => !a.isDead).length;
+        const totalAdvs = adventurers.length;
+        const survivalRate = totalAdvs > 0 ? Math.floor((aliveCount / totalAdvs) * 100) : 0;
+        const bossKills = stats.bossDefeated || 0;
+        
+        const score = Math.floor(money / 10) + (fame * 10) + (survivalRate * 100) + (bossKills * 5000) + (guildLevel * 2000) + (stats.epicCrafted * 500);
+
+        let rank = 'C';
+        let rankColor = 'text-gray-400';
+        if (score > 100000) { rank = 'S'; rankColor = 'text-yellow-400'; }
+        else if (score > 50000) { rank = 'A'; rankColor = 'text-red-400'; }
+        else if (score > 20000) { rank = 'B'; rankColor = 'text-blue-400'; }
+
+        let contributionText = "";
+        if (bossKills === 5) contributionText = "全ての脅威を退け、街を完全に守り抜いた！街の歴史に名を残す最高の貢献。";
+        else if (bossKills >= 3) contributionText = "多くのボスを撃退し、街の被害を最小限に抑えた。街の人々から深く感謝されている。";
+        else if (bossKills >= 1) contributionText = "いくつかの脅威を退けたが、街は深い傷を負った。それでもあなたの武具は確かに命を救った。";
+        else contributionText = "次々と来る魔物の前に冒険者たちは倒れ、街は壊滅状態。あなたの武具だけが焼け跡に残された…。";
 
         return (
-          <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center z-50 p-6 overflow-y-auto fade-in">
-            <div className="max-w-2xl w-full text-center">
-              <h1 className="text-4xl md:text-5xl font-serif text-[#D4AF37] mb-8 tracking-widest border-b border-[#D4AF37] pb-4">
+          <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-start z-50 p-6 overflow-y-auto fade-in">
+            <div className="max-w-3xl w-full text-center mt-10">
+              <h1 className="text-5xl md:text-6xl font-serif text-[#D4AF37] mb-4 tracking-widest border-b border-[#D4AF37] pb-4">
                 {endingId === 'bankrupt' ? 'GAME OVER' : '100日間経過'}
               </h1>
-              <h2 className="text-2xl md:text-3xl mb-6 font-bold">Ending: <span className={endingId === 'bankrupt' ? 'text-red-500' : 'text-[#D4AF37]'}>{currentEnd.title}</span></h2>
-              <p className="text-base md:text-xl leading-relaxed text-gray-300 mb-12 bg-white/5 p-6 rounded">{currentEnd.desc}</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center bg-[#3E2723] p-6 rounded-lg border border-[#D4AF37] shadow-2xl">
-                <div><div className="text-sm text-gray-400 mb-2">最終資金</div><div className={`text-2xl font-bold ${money < 0 ? 'text-red-500' : 'text-[#D4AF37]'}`}>{money} G</div></div>
-                <div><div className="text-sm text-gray-400 mb-2">最終名声</div><div className="text-2xl font-bold text-white">⭐ {fame}</div></div>
-                <div><div className="text-sm text-gray-400 mb-2">生存冒険者数</div><div className="text-2xl font-bold text-white">{aliveCount} <span className="text-sm font-normal text-gray-400">/ {adventurers.length}</span></div></div>
-              </div>
-              <div className="mt-16 flex flex-col md:flex-row justify-center gap-6">
+              <h2 className="text-2xl md:text-3xl mb-4 font-bold">Ending: <span className={endingId === 'bankrupt' ? 'text-red-500' : 'text-[#D4AF37]'}>{currentEnd.title}</span></h2>
+              <p className="text-base md:text-lg leading-relaxed text-gray-300 mb-8 bg-white/5 p-4 rounded">{currentEnd.desc}</p>
+              
+              {endingId !== 'bankrupt' && (
+                <div className="bg-[#3E2723] p-6 rounded-lg border border-[#D4AF37] shadow-2xl text-left mb-8">
+                  <h3 className="text-xl font-bold text-[#D4AF37] mb-4 border-b border-[#D4AF37]/50 pb-2 flex justify-between">
+                    <span>総合評価: <span className={`text-3xl ml-2 ${rankColor}`}>{rank}</span></span>
+                    <span>Score: {score.toLocaleString()}</span>
+                  </h3>
+                  <p className="text-sm text-gray-300 mb-6 italic">{contributionText}</p>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">最終資金</div>
+                      <div className={`text-lg font-bold ${money < 0 ? 'text-red-500' : 'text-white'}`}>{money.toLocaleString()} G</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">最終名声</div>
+                      <div className="text-lg font-bold text-white">⭐ {fame.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">ボス討伐数</div>
+                      <div className="text-lg font-bold text-white">{bossKills} / 5</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">ギルド貢献Lv</div>
+                      <div className="text-lg font-bold text-white">Lv. {guildLevel}</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">生存冒険者</div>
+                      <div className="text-lg font-bold text-white">{aliveCount} <span className="text-xs text-gray-400">/ {totalAdvs} ({survivalRate}%)</span></div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">総売上額</div>
+                      <div className="text-lg font-bold text-white">{stats.totalSales.toLocaleString()} G</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">エピック製作数</div>
+                      <div className="text-lg font-bold text-white">{stats.epicCrafted} 回</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">武器製作総数</div>
+                      <div className="text-lg font-bold text-white">{stats.crafted} 回</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-8 flex flex-col md:flex-row justify-center gap-6 pb-12">
                 <button onClick={resetGame} className={`font-bold px-8 py-3 rounded transition-all active:scale-95 text-lg ${confirmReset ? 'bg-red-600 text-white' : 'bg-[#D4AF37] text-[#3E2723] hover:bg-yellow-500'}`}>
                   {confirmReset ? '本当にリセット？' : '最初からやり直す'}
                 </button>
@@ -1869,24 +2050,31 @@
               </div>
             </div>
           )}
-          {renderHeader()}
-          <div className="flex flex-1 overflow-hidden">
-            {gameState !== 'report' && gameState !== 'ending' && renderSidebar()}
-            <main className="flex-1 overflow-y-auto relative shadow-inner">
-              {gameState === 'menu' && renderMainMenu()}
-              {gameState === 'craft' && renderCraftingView()}
-              {gameState === 'shop' && renderShopView()}
-              {gameState === 'dealer' && renderDealerView()}
-              {gameState === 'quest' && renderQuestView()}
-              {gameState === 'upgrade' && renderUpgradeView()}
-              {gameState === 'achievements' && renderAchievementsView()}
-              {gameState === 'log' && renderLogView()}
-              {gameState === 'report' && renderReportView()}
-              {gameState === 'help' && renderHelpView()}
-              {gameState === 'ending' && renderEndingView()}
-            </main>
-          </div>
-          {renderAdventurerModal()}
+
+          {gameState === 'opening' ? (
+            renderOpeningView()
+          ) : (
+            <>
+              {renderHeader()}
+              <div className="flex flex-1 overflow-hidden">
+                {gameState !== 'report' && gameState !== 'ending' && renderSidebar()}
+                <main className="flex-1 overflow-y-auto relative shadow-inner">
+                  {gameState === 'menu' && renderMainMenu()}
+                  {gameState === 'craft' && renderCraftingView()}
+                  {gameState === 'shop' && renderShopView()}
+                  {gameState === 'dealer' && renderDealerView()}
+                  {gameState === 'quest' && renderQuestView()}
+                  {gameState === 'upgrade' && renderUpgradeView()}
+                  {gameState === 'achievements' && renderAchievementsView()}
+                  {gameState === 'log' && renderLogView()}
+                  {gameState === 'report' && renderReportView()}
+                  {gameState === 'help' && renderHelpView()}
+                  {gameState === 'ending' && renderEndingView()}
+                </main>
+              </div>
+              {renderAdventurerModal()}
+            </>
+          )}
         </div>
       );
     }
