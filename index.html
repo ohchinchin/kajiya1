@@ -510,7 +510,7 @@
       const [craftLevel, setCraftLevel] = useState(1);
       const [craftExp, setCraftExp] = useState(0);
       const [upgrades, setUpgrades] = useState({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
-      const [stats, setStats] = useState({ crafted: 0, epicCrafted: 0, totalSales: 0 }); 
+      const [stats, setStats] = useState({ crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0 }); 
       const [achievements, setAchievements] = useState(() => INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
 
       const [quests, setQuests] = useState([
@@ -529,8 +529,10 @@
 
       // タブフィルター用
       const [craftFilter, setCraftFilter] = useState('all'); 
+      const [craftWeightFilter, setCraftWeightFilter] = useState('all'); 
       const [shopFilter, setShopFilter] = useState('all');
-      const [logFilter, setLogFilter] = useState('all'); // ログのフィルタリング用
+      const [shopWeightFilter, setShopWeightFilter] = useState('all');
+      const [logFilter, setLogFilter] = useState('all'); 
 
       // ボス戦結果
       const [bossReport, setBossReport] = useState(null);
@@ -547,7 +549,7 @@
       // オートロード（初回のみ）
       useEffect(() => {
         try {
-          const saved = localStorage.getItem('blacksmith_save_v17');
+          const saved = localStorage.getItem('blacksmith_save_v19');
           if (saved) {
             const data = JSON.parse(saved);
             setDay(data.day); setMoney(data.money); setFame(data.fame || 0);
@@ -556,7 +558,7 @@
             setUpgrades(data.upgrades); setCraftLevel(data.craftLevel || 1); setCraftExp(data.craftExp || 0);
             setGuildLevel(data.guildLevel || 1); setVipState(data.vipState || { stage: 0, isActive: false });
             setActiveEvent(data.activeEvent || null);
-            setStats(data.stats || { crafted: 0, epicCrafted: 0, totalSales: 0 });
+            setStats(data.stats || { crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0 });
             setAchievements(INITIAL_ACHIEVEMENTS.map(baseAch => {
               const savedAch = (data.achievements || []).find(a => a.id === baseAch.id);
               return { ...baseAch, ...(savedAch || {}) };
@@ -574,7 +576,7 @@
         const timer = setTimeout(() => {
           try {
             const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent };
-            localStorage.setItem('blacksmith_save_v17', JSON.stringify(data));
+            localStorage.setItem('blacksmith_save_v19', JSON.stringify(data));
           } catch (e) {
             console.warn("Auto-save failed:", e);
           }
@@ -584,7 +586,7 @@
 
       useEffect(() => {
         if (gameState === 'log' && logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-      }, [logs, gameState, logFilter]); // logFilter変更時もスクロール
+      }, [logs, gameState, logFilter]);
 
       useEffect(() => { setShopPricePct(100); }, [shopSelectedItem]);
 
@@ -645,7 +647,7 @@
 
       const resetGame = () => {
         if (confirmReset) {
-          try { localStorage.removeItem('blacksmith_save_v17'); } catch(e){}
+          try { localStorage.removeItem('blacksmith_save_v19'); } catch(e){}
           setGameState('menu'); setDay(1); setMoney(1500); setFame(0);
           setMaterials({ iron: 50, wood: 50, leather: 40, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
           setInventory([]); setGuildLevel(1); 
@@ -656,10 +658,11 @@
           setAdventurers(newAdvs);
           setLogs(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
           setCraftLevel(1); setCraftExp(0); setUpgrades({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
-          setStats({ crafted: 0, epicCrafted: 0, totalSales: 0 }); setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
+          setStats({ crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0 }); setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
           setQuests([generateQuest(1, 'permanent', 1), generateQuest(1, 'permanent', 1), generateQuest(1, 'limited', 1), generateQuest(1, 'limited', 1)]); 
           setVipState({ stage: 0, isActive: false });
           setActiveEvent(null); setEndingId(null); setBossReport(null); setConfirmReset(false);
+          setCraftFilter('all'); setCraftWeightFilter('all'); setShopFilter('all'); setShopWeightFilter('all');
           showToast('データを初期化しました', 'success');
         } else {
           setConfirmReset(true); setTimeout(() => setConfirmReset(false), 3000);
@@ -807,19 +810,22 @@
         fameGained = Math.max(1, fameGained); 
 
         const oldLevel = FAME_THRESHOLDS.filter(t => fame >= t).length;
-        setMoney(m => m + sellPrice); setFame(f => f + fameGained);
+        const newFame = fame + fameGained;
+        const newLevel = FAME_THRESHOLDS.filter(t => newFame >= t).length;
+        const fameAdvGained = newLevel > oldLevel ? (newLevel - oldLevel) : 0;
+
+        setMoney(m => m + sellPrice); 
+        setFame(newFame);
         setInventory(inv => inv.filter(i => i.uid !== item.uid));
-        setStats(s => ({ ...s, totalSales: s.totalSales + sellPrice }));
-        setShopSelectedItem(null); setShopPricePct(100);
+        setStats(s => ({ ...s, totalSales: s.totalSales + sellPrice, pendingFameAdvs: (s.pendingFameAdvs || 0) + fameAdvGained }));
+        setShopSelectedItem(null); 
+        setShopPricePct(100);
 
         showToast(`市場卸し: +${sellPrice}G / ⭐+${fameGained}`, 'success');
         addLog(`💰【市場卸し】${item.name} を市場へ流した。${sellPrice}G の利益と、名声 ${fameGained} を得た！`);
 
-        if (FAME_THRESHOLDS.filter(t => (fame + fameGained) >= t).length > oldLevel) {
-            const newAdv = generateAdventurer(day, guildLevel, adventurers);
-            setAdventurers(prev => [...prev, newAdv]);
-            addLog(`🌟【名声】市場に出回った武具の噂を聞きつけ、新たな冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた！`);
-            showToast(`名声により新たな冒険者が来店！`, 'info');
+        if (fameAdvGained > 0) {
+            addLog(`🌟【名声上昇】街での評判が上がった。明日になれば新たな冒険者が訪れるかもしれない。`);
         }
       };
 
@@ -966,6 +972,7 @@
           let newAdvs = [...adventurers];
           let activeAdvsCount = 0;
           let reportLogs = []; 
+          let currentMoney = money; 
 
           // ボス襲来判定 (10, 30, 50, 70, 100日目)
           const targetBoss = [10, 30, 50, 70, 100].includes(day) ? BOSSES.find(b => b.day === day) : null;
@@ -982,7 +989,7 @@
                 earnedMaterials[matId] = (earnedMaterials[matId] || 0) + amt;
                 earnedMatsStr.push(`${MATERIALS[matId].name}x${amt}`);
               }
-              setMoney(m => m + targetBoss.rewardMoney);
+              currentMoney += targetBoss.rewardMoney;
               setFame(f => f + 100);
               addLog(`🎉【ボス討伐】冒険者たちは協力し、${targetBoss.name}を討ち果たした！`);
               addLog(`🎁【特別報酬】${targetBoss.rewardMoney}G と ${earnedMatsStr.join(', ')} を得た！`);
@@ -1057,7 +1064,7 @@
                   const discount = (upgrades.haggleLevel * 0.1) + (adv.trust / 200);
                   const buyPrice = Math.floor(dropMat.basePrice * dropAmt * Math.max(0.3, (1.2 - discount)) * buyMod);
                   
-                  if (money - totalBuyPrice >= buyPrice && Math.random() * 100 < (adv.trust + 50)) { 
+                  if (currentMoney - totalBuyPrice >= buyPrice && Math.random() * 100 < (adv.trust + 50)) { 
                      totalBuyPrice += buyPrice; 
                      earnedMaterials[dropMat.id] = (earnedMaterials[dropMat.id] || 0) + dropAmt;
                      totalBoughtMats[dropMat.id] = (totalBoughtMats[dropMat.id] || 0) + dropAmt;
@@ -1079,7 +1086,7 @@
             let summaryStr = `【探索】${aliveCount}人が無事帰還。`;
             if (totalBuyPrice > 0) {
               summaryStr += `素材(${boughtMatsStr})を計 ${totalBuyPrice}G で買い取った。`;
-              setMoney(m => m - totalBuyPrice);
+              currentMoney -= totalBuyPrice; 
             }
             addLog(summaryStr);
 
@@ -1093,17 +1100,28 @@
              addLog(`🌟【新規来店】新しい冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた。`);
           }
 
+          // 名声上昇による追加の冒険者来店処理
+          const pendingCount = stats.pendingFameAdvs || 0;
+          if (pendingCount > 0) {
+             for (let i = 0; i < pendingCount; i++) {
+                const newAdv = generateAdventurer(day, guildLevel, newAdvs);
+                newAdvs.push(newAdv);
+                addLog(`🌟【名声】噂を聞きつけた新たな冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた！`);
+             }
+             setStats(s => ({ ...s, pendingFameAdvs: 0 }));
+          }
+
           setMaterials(earnedMaterials); setAdventurers(newAdvs); setShopSelectedItem(null); setShopPricePct(100);
           
-          let nextMoney = money;
-
           // 納税タイミング (20, 40, 60, 80日目。100日目は免除)
           if (day === 20 || day === 40 || day === 60 || day === 80) {
             const tax = getTaxAmount(day); 
-            nextMoney -= tax;
+            currentMoney -= tax;
             addLog(`📜【納税】徴税吏に店舗税 ${tax} G を納めた。`); 
-            setMoney(nextMoney);
-            if (nextMoney < 0) { setEndingId('bankrupt'); setIsTransitioning(false); setGameState('ending'); return; }
+            setMoney(currentMoney);
+            if (currentMoney < 0) { setEndingId('bankrupt'); setIsTransitioning(false); setGameState('ending'); return; }
+          } else {
+            setMoney(currentMoney);
           }
 
           if (!vipState.isActive && vipState.stage < VIP_QUESTS.length) {
@@ -1126,7 +1144,7 @@
           }
           setQuests(nextQuests);
 
-          if (day >= 100) { checkEnding(nextMoney, newAdvs); setIsTransitioning(false); return; }
+          if (day >= 100) { checkEnding(currentMoney, newAdvs); setIsTransitioning(false); return; }
 
           setDay(d => d + 1);
           if (!targetBoss) setLogs(prev => [...prev, "=== REPORT_START ===", JSON.stringify(reportLogs)]); 
@@ -1289,7 +1307,10 @@
       };
 
       const renderCraftingView = () => {
-        const filteredRecipes = RECIPES.filter(r => craftFilter === 'all' || r.type === craftFilter);
+        const filteredRecipes = RECIPES.filter(r => 
+          (craftFilter === 'all' || r.type === craftFilter) &&
+          (craftWeightFilter === 'all' || r.weight === craftWeightFilter)
+        );
 
         return (
           <div className="p-4 md:p-6 font-sans text-[#2C3E50] max-w-6xl mx-auto fade-in flex flex-col h-full">
@@ -1297,11 +1318,20 @@
               <h2 className="text-3xl font-serif">工房</h2>
               <div className="text-sm bg-blue-50 text-blue-800 px-3 py-1 rounded border border-blue-200">次のレベルまで: {getNextExp(craftLevel) - craftExp} EXP</div>
             </div>
-            <div className="flex gap-2 mb-4 flex-shrink-0">
-              <button onClick={() => setCraftFilter('all')} className={`px-4 py-1 border rounded font-bold text-sm ${craftFilter === 'all' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}>すべて</button>
-              <button onClick={() => setCraftFilter('weapon')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'weapon' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}><IconSword />武器</button>
-              <button onClick={() => setCraftFilter('armor')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'armor' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}><IconArmor />防具</button>
-              <button onClick={() => setCraftFilter('shield')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'shield' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}><IconShield />盾/飾</button>
+            
+            <div className="flex flex-col sm:flex-row gap-2 mb-4 flex-shrink-0">
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setCraftFilter('all')} className={`px-4 py-1 border rounded font-bold text-sm ${craftFilter === 'all' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}>すべて</button>
+                <button onClick={() => setCraftFilter('weapon')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'weapon' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}><IconSword />武器</button>
+                <button onClick={() => setCraftFilter('armor')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'armor' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}><IconArmor />防具</button>
+                <button onClick={() => setCraftFilter('shield')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'shield' ? 'bg-[#3E2723] text-[#D4AF37]' : 'bg-white text-gray-600'}`}><IconShield />盾/飾</button>
+              </div>
+              <div className="flex flex-wrap gap-2 sm:ml-4">
+                <button onClick={() => setCraftWeightFilter('all')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600'}`}>全重量</button>
+                <button onClick={() => setCraftWeightFilter('heavy')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'heavy' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800'}`}>重量級</button>
+                <button onClick={() => setCraftWeightFilter('medium')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'medium' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-800'}`}>中量級</button>
+                <button onClick={() => setCraftWeightFilter('light')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'light' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-800'}`}>軽量級</button>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pb-12 flex-1">
@@ -1341,7 +1371,10 @@
       const renderShopView = () => {
         const aliveAdvs = adventurers.filter(a => !a.isDead);
         let previewFame = shopSelectedItem ? Math.max(1, Math.floor(shopSelectedItem.baseValue / 40) + (shopSelectedItem.quality === 'レア' ? 2 : shopSelectedItem.quality === 'エピック' ? 6 : 0) + (shopSelectedItem.enchant ? 4 : 0)) : 0;
-        const filteredInv = inventory.filter(i => shopFilter === 'all' || i.type === shopFilter);
+        const filteredInv = inventory.filter(i => 
+          (shopFilter === 'all' || i.type === shopFilter) &&
+          (shopWeightFilter === 'all' || i.weight === shopWeightFilter)
+        );
 
         return (
           <div className="p-4 md:p-6 font-sans text-[#2C3E50] h-full flex flex-col max-w-6xl mx-auto fade-in">
@@ -1351,11 +1384,17 @@
               <div className="lg:w-1/3 flex-1 lg:flex-none flex flex-col bg-white rounded shadow-md border border-[#3E2723]/20 overflow-hidden min-h-0">
                 <div className="p-3 border-b bg-gray-50 flex flex-col gap-2">
                   <h3 className="text-lg font-bold">在庫一覧</h3>
-                  <div className="flex gap-1">
-                    <button onClick={() => setShopFilter('all')} className={`px-2 py-1 text-xs border rounded ${shopFilter === 'all' ? 'bg-[#3E2723] text-white' : 'bg-white'}`}>全</button>
-                    <button onClick={() => setShopFilter('weapon')} className={`px-2 py-1 text-xs border rounded ${shopFilter === 'weapon' ? 'bg-[#3E2723] text-white' : 'bg-white'}`}>武</button>
-                    <button onClick={() => setShopFilter('armor')} className={`px-2 py-1 text-xs border rounded ${shopFilter === 'armor' ? 'bg-[#3E2723] text-white' : 'bg-white'}`}>防</button>
-                    <button onClick={() => setShopFilter('shield')} className={`px-2 py-1 text-xs border rounded ${shopFilter === 'shield' ? 'bg-[#3E2723] text-white' : 'bg-white'}`}>盾</button>
+                  <div className="flex flex-wrap gap-1">
+                    <button onClick={() => setShopFilter('all')} className={`px-2 py-1 text-xs border rounded font-bold ${shopFilter === 'all' ? 'bg-[#3E2723] text-white' : 'bg-white text-gray-700'}`}>全種</button>
+                    <button onClick={() => setShopFilter('weapon')} className={`px-2 py-1 text-xs border rounded font-bold ${shopFilter === 'weapon' ? 'bg-[#3E2723] text-white' : 'bg-white text-gray-700'}`}>武器</button>
+                    <button onClick={() => setShopFilter('armor')} className={`px-2 py-1 text-xs border rounded font-bold ${shopFilter === 'armor' ? 'bg-[#3E2723] text-white' : 'bg-white text-gray-700'}`}>防具</button>
+                    <button onClick={() => setShopFilter('shield')} className={`px-2 py-1 text-xs border rounded font-bold ${shopFilter === 'shield' ? 'bg-[#3E2723] text-white' : 'bg-white text-gray-700'}`}>盾/飾</button>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <button onClick={() => setShopWeightFilter('all')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}>全重量</button>
+                    <button onClick={() => setShopWeightFilter('heavy')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'heavy' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800'}`}>重</button>
+                    <button onClick={() => setShopWeightFilter('medium')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'medium' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-800'}`}>中</button>
+                    <button onClick={() => setShopWeightFilter('light')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'light' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-800'}`}>軽</button>
                   </div>
                 </div>
                 <div className="overflow-y-auto p-3 space-y-2 flex-1">
