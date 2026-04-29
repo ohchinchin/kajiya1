@@ -1297,7 +1297,7 @@
           if (day >= 100) { checkEnding(currentMoney, newAdvs); setIsTransitioning(false); return; }
 
           setDay(d => d + 1);
-          if (!targetBoss) setLogs(prev => [...prev, "=== REPORT_START ===", JSON.stringify(reportLogs)]); 
+          if (!targetBoss) setLogs(prev => [...prev, "=== REPORT_START ===" + JSON.stringify(reportLogs)]); 
           
           triggerDailyEvent(); 
           
@@ -1774,7 +1774,7 @@
 
       const renderLogView = () => {
         const filteredLogs = logs.filter(l => {
-          if (l.startsWith("=== REPORT_START ===")) return false;
+          if (l.startsWith("=== REPORT_START ===") || l.startsWith("[{")) return false;
           if (logFilter === 'all') return true;
           if (logFilter === 'important') return l.includes('【覚醒】') || l.includes('【悲劇】') || l.includes('【ボス') || l.includes('【防衛') || l.includes('【恩恵】') || l.includes('【特命】') || l.includes('王室御用達') || l.includes('【イベント】') || l.includes('【実績') || l.includes('【警告】');
           if (logFilter === 'trade') return l.includes('【売却】') || l.includes('【買取】') || l.includes('【修理】') || l.includes('【市場卸し】') || l.includes('【仕入】') || l.includes('【ギルド納品】') || l.includes('【納税】') || l.includes('【ギルド投資】') || l.includes('【探索】') || l.includes('【新規来店】');
