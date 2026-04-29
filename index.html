@@ -1992,7 +1992,7 @@
         else contributionText = "次々と来る魔物の前に冒険者たちは倒れ、街は壊滅状態。あなたの武具だけが焼け跡に残された…。";
 
         return (
-          <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-start z-50 p-6 overflow-y-auto fade-in">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm text-white flex flex-col items-center justify-start z-50 p-6 overflow-y-auto fade-in">
             <div className="max-w-3xl w-full text-center mt-10">
               <h1 className="text-4xl md:text-5xl font-serif text-[#D4AF37] mb-8 tracking-widest border-b border-[#D4AF37] pb-4">
                 {endingId === 'bankrupt' ? 'GAME OVER' : '100日間経過'}
@@ -2001,7 +2001,7 @@
               <p className="text-base md:text-lg leading-relaxed text-gray-300 mb-8 bg-glass-panel/5 p-4 rounded">{currentEnd.desc}</p>
               
               {endingId !== 'bankrupt' && (
-                <div className="bg-[#3E2723] p-6 rounded-lg border border-[#D4AF37] shadow-2xl text-left mb-8">
+                <div className="bg-glass-panel p-6 rounded-lg border border-[#D4AF37] shadow-2xl text-left mb-8">
                   <h3 className="text-xl font-bold text-[#D4AF37] mb-4 border-b border-[#D4AF37]/50 pb-2 flex justify-between">
                     <span>総合評価: <span className={`text-3xl ml-2 ${rankColor}`}>{rank}</span></span>
                     <span>Score: {score.toLocaleString()}</span>
@@ -2132,6 +2132,9 @@
       if (!isLoaded) return null;
 
       const getBgImage = () => {
+        if (gameState === 'ending') {
+          return `url("./assets/images/end_${endingId}.png")`;
+        }
         if (gameState === 'opening') return 'url("./assets/images/bg_opening.png")';
         if (gameState === 'craft') return 'url("./assets/images/bg_forge.png")';
         if (gameState === 'shop' || gameState === 'dealer') return 'url("./assets/images/bg_shop.png")';
