@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鍛冶屋シミュレーター</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body { margin: 0; font-family: sans-serif; background-color: #1a1a1a; }
+    .bg-glass { background-color: rgba(20, 15, 10, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(212, 175, 55, 0.3); color: #F4EFE6; }
+    .bg-glass-light { background-color: rgba(255, 255, 255, 0.1); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.2); }
+    .bg-glass-panel { background-color: rgba(30, 25, 20, 0.7); backdrop-filter: blur(4px); border: 1px solid rgba(212, 175, 55, 0.2); color: #E0D0B0; }
+    .bg-image { background-size: cover; background-position: center; background-attachment: fixed; transition: background-image 0.5s ease-in-out; }
+    /* Enhance specific text colors inside glass panels */
+    .text-dark { color: #2C3E50 !important; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 3px; }
+
+    @keyframes fade-in-out {
+      0% { opacity: 0; transform: translate(-50%, -20px); }
+      10% { opacity: 1; transform: translate(-50%, 0); }
+      90% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -20px); }
+    }
+    .animate-toast { animation: fade-in-out 3s forwards; }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .fade-in { animation: fade-in 0.5s forwards; }
+    @keyframes pop-up {
+      0% { transform: scale(0.9); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pop-up { animation: pop-up 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+    }
+    .animate-shake { animation: shake 0.4s ease-in-out; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- マスターデータ ---
+    const MATERIALS = {
+      iron: { id: 'iron', name: '鉄鉱石', basePrice: 10, rarity: 1 },
+      wood: { id: 'wood', name: '丈夫な木材', basePrice: 8, rarity: 1 },
+      leather: { id: 'leather', name: '獣の皮', basePrice: 12, rarity: 1 },
+      steel: { id: 'steel', name: '鋼鉄', basePrice: 40, rarity: 2 },
+      fine_wood: { id: 'fine_wood', name: '霊木', basePrice: 35, rarity: 2 },
+      hard_leather: { id: 'hard_leather', name: '硬化革', basePrice: 45, rarity: 2 },
+      magic_stone: { id: 'magic_stone', name: '魔石', basePrice: 80, rarity: 2 },
+      mithril: { id: 'mithril', name: 'ミスリル', basePrice: 150, rarity: 3 },
+      dragon_scale: { id: 'dragon_scale', name: '竜の鱗', basePrice: 200, rarity: 3 },
+      high_magic_stone: { id: 'high_magic_stone', name: '大魔石', basePrice: 250, rarity: 3 },
+      orichalcum: { id: 'orichalcum', name: 'オリハルコン', basePrice: 600, rarity: 4 },
+      adamantite: { id: 'adamantite', name: 'アダマンタイト', basePrice: 600, rarity: 4 },
+      god_tear: { id: 'god_tear', name: '神の涙', basePrice: 1500, rarity: 5 },
+    };
+
+    const WEIGHT_LABELS = { heavy: '重量級', medium: '中量級', light: '軽量級' };
+
+    const CATEGORY_NAMES = {
+      sword: '剣', axe: '斧', spear: '槍', mace: '鈍器', bow: '弓', dagger: '短剣', wand: '杖', katana: '刀',
+      heavy_armor: '重鎧', medium_armor: '中鎧', light_armor: '軽鎧',
+      heavy_shield: '大盾', light_shield: '小盾', accessory: '装飾'
+    };
+
+    const CLASS_DATA = {
+      '戦士': { weight: 'heavy', advanced: 'パラディン', fav: ['sword', 'axe', 'spear', 'heavy_armor', 'heavy_shield'] },
+      'パラディン': { weight: 'heavy', advanced: null, fav: ['sword', 'mace', 'spear', 'heavy_armor', 'heavy_shield'] },
+      '剣士': { weight: 'medium', advanced: '剣聖', fav: ['sword', 'katana', 'medium_armor', 'light_shield'] },
+      '剣聖': { weight: 'medium', advanced: null, fav: ['sword', 'katana', 'bow', 'medium_armor', 'light_shield'] },
+      '僧侶': { weight: 'medium', advanced: 'ハイプリースト', fav: ['mace', 'wand', 'medium_armor', 'accessory'] },
+      'ハイプリースト': { weight: 'medium', advanced: null, fav: ['mace', 'wand', 'light_shield', 'accessory'] },
+      '盗賊': { weight: 'light', advanced: 'アサシン', fav: ['dagger', 'bow', 'light_armor', 'light_shield'] },
+      'アサシン': { weight: 'light', advanced: null, fav: ['dagger', 'katana', 'light_armor', 'accessory'] },
+      '魔法使い': { weight: 'light', advanced: 'アークメイジ', fav: ['wand', 'dagger', 'light_armor', 'accessory'] },
+      'アークメイジ': { weight: 'light', advanced: null, fav: ['wand', 'light_armor', 'accessory'] },
+    };
+
+    const SERIES_NAMES = { 
+      iron: '鉄', wood_leather: '木/革', steel: '鋼', magic: '魔力', 
+      mithril_dragon: '幻獣', god: '神話' 
+    };
+
+    const RECIPES = [
+      // Lv 1-4 (初期)
+      { id: 'iron_sword', name: '鉄の剣', reqLevel: 1, durability: 5, type: 'weapon', weight: 'heavy', category: 'sword', series: 'iron', req: { iron: 2, wood: 1 }, basePower: 15, baseValue: 50 },
+      { id: 'club', name: 'こん棒', reqLevel: 1, durability: 5, type: 'weapon', weight: 'medium', category: 'mace', series: 'wood_leather', req: { wood: 2 }, basePower: 12, baseValue: 20 },
+      { id: 'wood_axe', name: '木こりの斧', reqLevel: 1, durability: 5, type: 'weapon', weight: 'heavy', category: 'axe', series: 'wood_leather', req: { wood: 3, iron: 1 }, basePower: 16, baseValue: 48 },
+      { id: 'wood_spear', name: '竹槍', reqLevel: 1, durability: 5, type: 'weapon', weight: 'medium', category: 'spear', series: 'wood_leather', req: { wood: 2, leather: 1 }, basePower: 14, baseValue: 40 },
+      { id: 'iron_armor', name: '鉄の胸当て', reqLevel: 1, durability: 5, type: 'armor', weight: 'heavy', category: 'heavy_armor', series: 'iron', req: { iron: 3, leather: 1 }, basePower: 18, baseValue: 70 },
+      { id: 'wood_wand', name: '木の杖', reqLevel: 1, durability: 5, type: 'weapon', weight: 'light', category: 'wand', series: 'wood_leather', req: { wood: 2, magic_stone: 1 }, basePower: 18, baseValue: 65 },
+      { id: 'leather_shield', name: '革の小盾', reqLevel: 1, durability: 5, type: 'shield', weight: 'light', category: 'light_shield', series: 'wood_leather', req: { leather: 2, wood: 1 }, basePower: 6, baseValue: 25 },
+      
+      { id: 'dagger', name: '盗賊の短剣', reqLevel: 2, durability: 5, type: 'weapon', weight: 'light', category: 'dagger', series: 'wood_leather', req: { iron: 1, leather: 1 }, basePower: 10, baseValue: 35 },
+      { id: 'iron_spear', name: '鉄の槍', reqLevel: 2, durability: 5, type: 'weapon', weight: 'medium', category: 'spear', series: 'iron', req: { iron: 2, wood: 2 }, basePower: 18, baseValue: 55 },
+      { id: 'leather_armor', name: '革の鎧', reqLevel: 2, durability: 5, type: 'armor', weight: 'light', category: 'light_armor', series: 'wood_leather', req: { leather: 3 }, basePower: 8, baseValue: 40 },
+      { id: 'wood_shield', name: '木の盾', reqLevel: 2, durability: 5, type: 'shield', weight: 'medium', category: 'light_shield', series: 'wood_leather', req: { wood: 3 }, basePower: 8, baseValue: 30 },
+      { id: 'short_bow', name: 'ショートボウ', reqLevel: 2, durability: 5, type: 'weapon', weight: 'medium', category: 'bow', series: 'wood_leather', req: { wood: 2, leather: 1 }, basePower: 12, baseValue: 40 },
+      
+      { id: 'iron_mace', name: '鉄のメイス', reqLevel: 3, durability: 5, type: 'weapon', weight: 'medium', category: 'mace', series: 'iron', req: { iron: 2 }, basePower: 12, baseValue: 45 },
+      { id: 'hunter_bow', name: '狩人の弓', reqLevel: 3, durability: 5, type: 'weapon', weight: 'medium', category: 'bow', series: 'wood_leather', req: { wood: 3, leather: 1 }, basePower: 14, baseValue: 50 },
+      { id: 'iron_katana', name: '鉄の打刀', reqLevel: 3, durability: 5, type: 'weapon', weight: 'medium', category: 'katana', series: 'iron', req: { iron: 3, wood: 1 }, basePower: 15, baseValue: 60 },
+      { id: 'long_sword', name: 'ロングソード', reqLevel: 3, durability: 5, type: 'weapon', weight: 'heavy', category: 'sword', series: 'iron', req: { iron: 4 }, basePower: 20, baseValue: 80 },
+      { id: 'iron_helmet', name: '鉄の兜', reqLevel: 3, durability: 5, type: 'armor', weight: 'heavy', category: 'heavy_armor', series: 'iron', req: { iron: 3 }, basePower: 12, baseValue: 50 },
+
+      { id: 'chainmail', name: 'チェインメイル', reqLevel: 4, durability: 5, type: 'armor', weight: 'medium', category: 'medium_armor', series: 'iron', req: { iron: 3 }, basePower: 14, baseValue: 60 },
+      { id: 'iron_shield', name: '鉄の大盾', reqLevel: 4, durability: 5, type: 'shield', weight: 'heavy', category: 'heavy_shield', series: 'iron', req: { iron: 3 }, basePower: 10, baseValue: 40 },
+      { id: 'bone_ring', name: '獣骨の指輪', reqLevel: 4, durability: 5, type: 'shield', weight: 'light', category: 'accessory', series: 'wood_leather', req: { leather: 2, magic_stone: 1 }, basePower: 8, baseValue: 50 },
+      { id: 'magic_ring_base', name: '魔石の指輪', reqLevel: 4, durability: 5, type: 'shield', weight: 'light', category: 'accessory', series: 'magic', req: { magic_stone: 1, iron: 1 }, basePower: 12, baseValue: 90 },
+
+      // Lv 5-8 (中盤)
+      { id: 'steel_sword', name: '鋼の長剣', reqLevel: 5, durability: 8, type: 'weapon', weight: 'heavy', category: 'sword', series: 'steel', req: { steel: 2, hard_leather: 1 }, basePower: 45, baseValue: 200 },
+      { id: 'steel_axe', name: '鋼の戦斧', reqLevel: 5, durability: 8, type: 'weapon', weight: 'heavy', category: 'axe', series: 'steel', req: { steel: 3 }, basePower: 48, baseValue: 210 },
+      { id: 'steel_dagger', name: '鋼の短剣', reqLevel: 5, durability: 8, type: 'weapon', weight: 'light', category: 'dagger', series: 'steel', req: { steel: 1, hard_leather: 1 }, basePower: 25, baseValue: 120 },
+      { id: 'heavy_mace', name: 'ヘビーメイス', reqLevel: 5, durability: 8, type: 'weapon', weight: 'heavy', category: 'mace', series: 'steel', req: { steel: 3, iron: 2 }, basePower: 50, baseValue: 230 },
+      { id: 'mage_robe', name: '魔術師のローブ', reqLevel: 5, durability: 8, type: 'armor', weight: 'light', category: 'light_armor', series: 'magic', req: { hard_leather: 2, magic_stone: 1 }, basePower: 30, baseValue: 190 },
+
+      { id: 'steel_rapier', name: '鋼のレイピア', reqLevel: 6, durability: 8, type: 'weapon', weight: 'medium', category: 'sword', series: 'steel', req: { steel: 2, fine_wood: 1 }, basePower: 40, baseValue: 180 },
+      { id: 'steel_spear', name: '鋼の槍', reqLevel: 6, durability: 8, type: 'weapon', weight: 'heavy', category: 'spear', series: 'steel', req: { steel: 2, fine_wood: 1 }, basePower: 42, baseValue: 190 },
+      { id: 'steel_halberd', name: '鋼のハルバード', reqLevel: 6, durability: 8, type: 'weapon', weight: 'heavy', category: 'spear', series: 'steel', req: { steel: 3, fine_wood: 2 }, basePower: 55, baseValue: 280 },
+      { id: 'magic_bow', name: '魔導弓', reqLevel: 6, durability: 8, type: 'weapon', weight: 'light', category: 'bow', series: 'magic', req: { fine_wood: 2, magic_stone: 1 }, basePower: 38, baseValue: 200 },
+      { id: 'magic_book', name: '魔道書', reqLevel: 6, durability: 8, type: 'shield', weight: 'light', category: 'accessory', series: 'magic', req: { fine_wood: 2, magic_stone: 2, leather: 2 }, basePower: 30, baseValue: 240 },
+      { id: 'spirit_wand', name: '精霊の杖', reqLevel: 6, durability: 8, type: 'weapon', weight: 'light', category: 'wand', series: 'magic', req: { fine_wood: 2, magic_stone: 2 }, basePower: 55, baseValue: 250 },
+      { id: 'steel_scale', name: '鋼の鱗鎧', reqLevel: 6, durability: 8, type: 'armor', weight: 'medium', category: 'medium_armor', series: 'steel', req: { steel: 3, hard_leather: 2 }, basePower: 42, baseValue: 240 },
+
+      { id: 'steel_katana', name: '鋼の太刀', reqLevel: 7, durability: 8, type: 'weapon', weight: 'medium', category: 'katana', series: 'steel', req: { steel: 3, hard_leather: 1 }, basePower: 44, baseValue: 220 },
+      { id: 'sniper_bow', name: '狙撃弓', reqLevel: 7, durability: 8, type: 'weapon', weight: 'medium', category: 'bow', series: 'wood_leather', req: { fine_wood: 3, hard_leather: 2 }, basePower: 46, baseValue: 250 },
+      { id: 'knight_shield', name: '騎士の盾', reqLevel: 7, durability: 8, type: 'shield', weight: 'heavy', category: 'heavy_shield', series: 'steel', req: { steel: 4, fine_wood: 1 }, basePower: 45, baseValue: 270 },
+      { id: 'magic_cloak', name: '魔術の外套', reqLevel: 7, durability: 8, type: 'armor', weight: 'light', category: 'light_armor', series: 'magic', req: { hard_leather: 3, magic_stone: 2 }, basePower: 40, baseValue: 260 },
+      { id: 'steel_shield', name: '鋼鉄の盾', reqLevel: 7, durability: 8, type: 'shield', weight: 'heavy', category: 'heavy_shield', series: 'steel', req: { steel: 3 }, basePower: 30, baseValue: 150 },
+      { id: 'assassin_dagger', name: '暗殺者の刃', reqLevel: 7, durability: 8, type: 'weapon', weight: 'light', category: 'dagger', series: 'magic', req: { steel: 1, magic_stone: 2 }, basePower: 38, baseValue: 220 },
+      { id: 'cleric_mace', name: '司祭のメイス', reqLevel: 7, durability: 8, type: 'weapon', weight: 'medium', category: 'mace', series: 'magic', req: { fine_wood: 1, steel: 1, magic_stone: 1 }, basePower: 40, baseValue: 200 },
+
+      { id: 'battle_axe', name: 'バトルアクス', reqLevel: 8, durability: 8, type: 'weapon', weight: 'heavy', category: 'axe', series: 'steel', req: { steel: 4, fine_wood: 1 }, basePower: 58, baseValue: 300 },
+      { id: 'crystal_wand', name: '水晶の杖', reqLevel: 8, durability: 8, type: 'weapon', weight: 'light', category: 'wand', series: 'magic', req: { fine_wood: 2, high_magic_stone: 1 }, basePower: 65, baseValue: 350 },
+      { id: 'steel_armor', name: '鋼の重鎧', reqLevel: 8, durability: 8, type: 'armor', weight: 'heavy', category: 'heavy_armor', series: 'steel', req: { steel: 4, hard_leather: 1 }, basePower: 50, baseValue: 280 },
+      { id: 'magic_ring', name: '魔力の指輪', reqLevel: 8, durability: 8, type: 'shield', weight: 'light', category: 'accessory', series: 'magic', req: { magic_stone: 3 }, basePower: 25, baseValue: 280 },
+      { id: 'holy_amulet', name: '聖なる護符', reqLevel: 8, durability: 8, type: 'shield', weight: 'medium', category: 'accessory', series: 'magic', req: { fine_wood: 1, magic_stone: 2 }, basePower: 22, baseValue: 260 },
+
+      // Lv 9-12 (終盤前)
+      { id: 'mithril_sword', name: 'ミスリルブレード', reqLevel: 9, durability: 12, type: 'weapon', weight: 'heavy', category: 'sword', series: 'mithril_dragon', req: { mithril: 3, dragon_scale: 1 }, basePower: 120, baseValue: 800 },
+      { id: 'mithril_axe', name: 'ミスリルアクス', reqLevel: 9, durability: 12, type: 'weapon', weight: 'heavy', category: 'axe', series: 'mithril_dragon', req: { mithril: 3, dragon_scale: 1 }, basePower: 130, baseValue: 850 },
+      { id: 'dragon_spear', name: '竜骨の槍', reqLevel: 9, durability: 12, type: 'weapon', weight: 'heavy', category: 'spear', series: 'mithril_dragon', req: { dragon_scale: 2, mithril: 1 }, basePower: 115, baseValue: 780 },
+      { id: 'dragon_dagger', name: '竜牙の短剣', reqLevel: 9, durability: 12, type: 'weapon', weight: 'light', category: 'dagger', series: 'mithril_dragon', req: { dragon_scale: 2, mithril: 1 }, basePower: 100, baseValue: 750 },
+      { id: 'mithril_shield', name: 'ミスリルの大盾', reqLevel: 9, durability: 12, type: 'shield', weight: 'heavy', category: 'heavy_shield', series: 'mithril_dragon', req: { mithril: 4 }, basePower: 90, baseValue: 600 },
+      { id: 'dragon_shield', name: '竜鱗の盾', reqLevel: 9, durability: 12, type: 'shield', weight: 'medium', category: 'light_shield', series: 'mithril_dragon', req: { dragon_scale: 3, mithril: 1 }, basePower: 85, baseValue: 700 },
+
+      { id: 'mithril_rapier', name: 'ミスリルレイピア', reqLevel: 10, durability: 12, type: 'weapon', weight: 'medium', category: 'sword', series: 'mithril_dragon', req: { mithril: 2, fine_wood: 1, high_magic_stone: 1 }, basePower: 110, baseValue: 780 },
+      { id: 'mithril_mace', name: 'ミスリルメイス', reqLevel: 10, durability: 12, type: 'weapon', weight: 'medium', category: 'mace', series: 'mithril_dragon', req: { mithril: 4 }, basePower: 125, baseValue: 820 },
+      { id: 'dragon_katana', name: '竜殺しの刀', reqLevel: 10, durability: 12, type: 'weapon', weight: 'medium', category: 'katana', series: 'mithril_dragon', req: { dragon_scale: 3, hard_leather: 1 }, basePower: 118, baseValue: 800 },
+      { id: 'dragon_bow', name: '竜翼の弓', reqLevel: 10, durability: 12, type: 'weapon', weight: 'medium', category: 'bow', series: 'mithril_dragon', req: { dragon_scale: 2, fine_wood: 2 }, basePower: 105, baseValue: 750 },
+      { id: 'dragon_helmet', name: '竜の兜', reqLevel: 10, durability: 12, type: 'armor', weight: 'heavy', category: 'heavy_armor', series: 'mithril_dragon', req: { dragon_scale: 3 }, basePower: 100, baseValue: 700 },
+      { id: 'sage_robe', name: '賢者の衣', reqLevel: 10, durability: 12, type: 'armor', weight: 'light', category: 'light_armor', series: 'mithril_dragon', req: { dragon_scale: 1, high_magic_stone: 2 }, basePower: 90, baseValue: 900 },
+      { id: 'sage_book', name: '大賢者の書', reqLevel: 10, durability: 12, type: 'shield', weight: 'light', category: 'accessory', series: 'mithril_dragon', req: { fine_wood: 2, high_magic_stone: 3 }, basePower: 85, baseValue: 950 },
+
+      { id: 'holy_sword', name: '聖剣', reqLevel: 11, durability: 12, type: 'weapon', weight: 'heavy', category: 'sword', series: 'mithril_dragon', req: { mithril: 4, high_magic_stone: 2 }, basePower: 140, baseValue: 1200 },
+      { id: 'dragon_halberd', name: '竜骨の戟', reqLevel: 11, durability: 12, type: 'weapon', weight: 'heavy', category: 'spear', series: 'mithril_dragon', req: { dragon_scale: 3, mithril: 2 }, basePower: 135, baseValue: 1150 },
+      { id: 'sage_wand', name: '賢者の大杖', reqLevel: 11, durability: 12, type: 'weapon', weight: 'light', category: 'wand', series: 'mithril_dragon', req: { fine_wood: 1, high_magic_stone: 3 }, basePower: 150, baseValue: 1000 },
+      { id: 'mithril_chain', name: 'ミスリルチェイン', reqLevel: 11, durability: 12, type: 'armor', weight: 'medium', category: 'medium_armor', series: 'mithril_dragon', req: { mithril: 3, dragon_scale: 1, hard_leather: 1 }, basePower: 120, baseValue: 1100 },
+
+      { id: 'mithril_armor', name: 'ミスリルプレート', reqLevel: 12, durability: 12, type: 'armor', weight: 'heavy', category: 'heavy_armor', series: 'mithril_dragon', req: { mithril: 5, dragon_scale: 1 }, basePower: 150, baseValue: 1300 },
+      { id: 'sage_cloak', name: '賢者の外套', reqLevel: 12, durability: 12, type: 'armor', weight: 'light', category: 'light_armor', series: 'mithril_dragon', req: { hard_leather: 2, high_magic_stone: 4 }, basePower: 110, baseValue: 1150 },
+      { id: 'dragon_armor', name: 'ドラゴンスケイル', reqLevel: 12, durability: 12, type: 'armor', weight: 'heavy', category: 'heavy_armor', series: 'mithril_dragon', req: { dragon_scale: 4, mithril: 1 }, basePower: 140, baseValue: 1200 },
+      { id: 'sage_amulet', name: '賢者の宝珠', reqLevel: 12, durability: 12, type: 'shield', weight: 'light', category: 'accessory', series: 'mithril_dragon', req: { high_magic_stone: 3, dragon_scale: 1 }, basePower: 80, baseValue: 900 },
+
+      // Lv 13-15 (エンドコンテンツ)
+      { id: 'adamant_sword', name: 'アダマンの大剣', reqLevel: 13, durability: 20, type: 'weapon', weight: 'heavy', category: 'sword', series: 'god', req: { adamantite: 3, orichalcum: 1 }, basePower: 350, baseValue: 3500 },
+      { id: 'adamant_spear', name: 'アダマンの槍', reqLevel: 13, durability: 20, type: 'weapon', weight: 'heavy', category: 'spear', series: 'god', req: { adamantite: 3, god_tear: 1 }, basePower: 360, baseValue: 3600 },
+      { id: 'adamant_axe', name: 'アダマンの大斧', reqLevel: 13, durability: 20, type: 'weapon', weight: 'heavy', category: 'axe', series: 'god', req: { adamantite: 4 }, basePower: 380, baseValue: 3800 },
+      { id: 'ori_shield', name: '神魔の盾', reqLevel: 13, durability: 20, type: 'shield', weight: 'medium', category: 'light_shield', series: 'god', req: { orichalcum: 3, god_tear: 1 }, basePower: 250, baseValue: 3500 },
+      { id: 'ori_dagger', name: '神魔の短剣', reqLevel: 13, durability: 20, type: 'weapon', weight: 'light', category: 'dagger', series: 'god', req: { orichalcum: 2, god_tear: 1 }, basePower: 300, baseValue: 3200 },
+      
+      { id: 'god_axe', name: '神砕きの斧', reqLevel: 14, durability: 20, type: 'weapon', weight: 'heavy', category: 'axe', series: 'god', req: { adamantite: 5, god_tear: 2 }, basePower: 450, baseValue: 5000 },
+      { id: 'adamant_armor', name: '絶望の重鎧', reqLevel: 14, durability: 20, type: 'armor', weight: 'heavy', category: 'heavy_armor', series: 'god', req: { adamantite: 4, dragon_scale: 2 }, basePower: 400, baseValue: 4000 },
+      { id: 'god_spear', name: '神槍グングニル', reqLevel: 14, durability: 20, type: 'weapon', weight: 'heavy', category: 'spear', series: 'god', req: { adamantite: 3, god_tear: 1 }, basePower: 360, baseValue: 3600 },
+      { id: 'god_katana', name: '神刀アマテラス', reqLevel: 14, durability: 20, type: 'weapon', weight: 'medium', category: 'katana', series: 'god', req: { orichalcum: 3, god_tear: 1 }, basePower: 340, baseValue: 3400 },
+      { id: 'god_bow', name: '天弓アルテミス', reqLevel: 14, durability: 20, type: 'weapon', weight: 'medium', category: 'bow', series: 'god', req: { orichalcum: 2, fine_wood: 3, god_tear: 1 }, basePower: 320, baseValue: 3300 },
+      { id: 'god_book', name: '神示の書', reqLevel: 14, durability: 20, type: 'shield', weight: 'light', category: 'accessory', series: 'god', req: { orichalcum: 2, god_tear: 2 }, basePower: 280, baseValue: 4500 },
+      { id: 'god_robe', name: '神代の法衣', reqLevel: 14, durability: 20, type: 'armor', weight: 'light', category: 'light_armor', series: 'god', req: { orichalcum: 2, god_tear: 2 }, basePower: 280, baseValue: 3800 },
+
+      { id: 'ragnarok_sword', name: '終焉の剣', reqLevel: 15, durability: 20, type: 'weapon', weight: 'heavy', category: 'sword', series: 'god', req: { adamantite: 4, orichalcum: 4, god_tear: 3 }, basePower: 600, baseValue: 12000 },
+      { id: 'aegis_armor', name: 'イージスの鎧', reqLevel: 15, durability: 20, type: 'armor', weight: 'heavy', category: 'heavy_armor', series: 'god', req: { adamantite: 4, orichalcum: 2, god_tear: 1 }, basePower: 450, baseValue: 7000 },
+      { id: 'god_wand', name: '世界樹の杖', reqLevel: 15, durability: 20, type: 'weapon', weight: 'medium', category: 'wand', series: 'god', req: { orichalcum: 3, god_tear: 3 }, basePower: 500, baseValue: 8000 },
+      { id: 'ori_mail', name: '神魔の中鎧', reqLevel: 15, durability: 20, type: 'armor', weight: 'medium', category: 'medium_armor', series: 'god', req: { orichalcum: 4, dragon_scale: 2 }, basePower: 320, baseValue: 3800 },
+      { id: 'aegis_shield', name: '神盾イージス', reqLevel: 15, durability: 20, type: 'shield', weight: 'heavy', category: 'heavy_shield', series: 'god', req: { adamantite: 5, god_tear: 1 }, basePower: 350, baseValue: 6000 },
+      { id: 'god_ring', name: '全能の指輪', reqLevel: 15, durability: 20, type: 'shield', weight: 'light', category: 'accessory', series: 'god', req: { god_tear: 3, high_magic_stone: 5 }, basePower: 200, baseValue: 5000 },
+    ];
+
+    const ENCHANTS = [
+      { id: 'sharp', name: '鋭利な', powerMult: 1.2, valueMult: 1.2, weight: 30 },
+      { id: 'sturdy', name: '頑丈な', powerMult: 1.3, valueMult: 1.1, weight: 30 },
+      { id: 'swift', name: '疾風の', powerMult: 1.4, valueMult: 1.4, weight: 20 },
+      { id: 'flame', name: '炎の', powerMult: 1.5, valueMult: 1.5, weight: 15 },
+      { id: 'ice', name: '氷の', powerMult: 1.5, valueMult: 1.5, weight: 15 },
+      { id: 'thunder', name: '雷鳴の', powerMult: 1.6, valueMult: 1.6, weight: 10 },
+      { id: 'blessed', name: '祝福された', powerMult: 1.7, valueMult: 2.0, weight: 10 },
+      { id: 'holy', name: '聖なる', powerMult: 1.8, valueMult: 1.8, weight: 10 },
+      { id: 'master', name: '名工の', powerMult: 2.0, valueMult: 2.5, weight: 5 },
+      { id: 'heroic', name: '豪傑の', powerMult: 2.2, valueMult: 2.0, weight: 5 },
+      { id: 'legendary', name: '伝説の', powerMult: 2.5, valueMult: 3.0, weight: 2 },
+      { id: 'fragile', name: '壊れかけの', powerMult: 1.5, valueMult: 0.3, weight: 10 },
+      { id: 'cursed', name: '呪われた', powerMult: 2.5, valueMult: 0.5, weight: 5 },
+      { id: 'demonic', name: '悪魔の', powerMult: 3.0, valueMult: 0.8, weight: 2 },
+      { id: 'divine', name: '神がかりの', powerMult: 3.5, valueMult: 4.0, weight: 0 }, 
+    ];
+
+    const ADVENTURER_NAMES = [
+      "アレン", "セリア", "ルーク", "ジャン", "マリア", "ガレス", "ミア", "エレーナ", "アーサー", "バルド", 
+      "シルヴィア", "レオ", "カイト", "リナ", "ゼノン", "フレイヤ", "ロイド", "アイシャ", "クロエ", "ノア",
+      "オズワルド", "アイザック", "ユリア", "オリビア", "フェリックス", "クラウス", "シオン", "アリス", "エドガー", "マルコ",
+      "ディアン", "カチュア", "グレン", "ルーカス", "ソフィア"
+    ];
+    
+    const FLAVOR_TEXTS = [
+      "田舎村から一攫千金を夢見てやってきた若者。",
+      "スラム街出身で、生き抜くための術は全て裏路地で学んだ。",
+      "かつては名門貴族だったが、没落し今は日銭を稼ぐ日々。",
+      "知識欲の塊で、未知の魔物や古代遺跡に目がない。",
+      "家族を養うため、危険を承知で剣を取った心優しき戦士。",
+      "ただ強者と戦うことだけを求める戦闘狂。",
+      "酒とギャンブルで作った借金を返すため、ダンジョンに潜り続ける。",
+      "伝説の武具を求めて世界中を旅している放浪者。",
+      "病に伏せる妹の薬代を稼ぐため、無茶な探索を繰り返している。",
+      "騎士団から追放され、名誉挽回の機会を狙っている。",
+      "神のお告げを聞いたと主張し、魔物討伐を己の使命としている。",
+      "故郷を魔物に滅ぼされ、復讐のためだけに生きている。",
+      "元は優秀な商人だったが、スリルを求めて冒険者に転向した。",
+      "魔術の実験で失敗し、莫大な借金を背負ってしまった魔法使い。",
+      "自分が何者かを知るため、記憶喪失のまま迷宮に挑む。",
+      "美味しい魔物料理を求めて、危険なダンジョンをさまよう美食家。",
+      "お宝の匂いには敏感で、罠を解除させたら右に出る者はいない。",
+      "口数は少ないが、仲間を守るためなら己の命も投げ出す。",
+      "派手な魔法で敵を蹴散らすのが大好きな、自己顕示欲の強い魔術師。",
+      "誰よりも臆病だが、いざという時には信じられない力を発揮する。"
+    ];
+
+    const RANDOM_EVENTS = [
+      { id: 'monster_surge', name: '魔物活性化', desc: '森の奥から魔獣の遠吠えが響く...。危険だが、持ち帰る金貨は増えるだろう。', diffMod: 40, rewardMod: 1.5, buyPriceMod: 1.0 },
+      { id: 'peaceful', name: '小春日和', desc: '魔物も眠気を誘われるような穏やかな日。安全だが、良い素材は期待できない。', diffMod: -20, rewardMod: 0.8, buyPriceMod: 1.0 },
+      { id: 'material_boom', name: '王都からの特需', desc: '王族が素材をかき集めているらしい。冒険者からの買取価格が跳ね上がる。', diffMod: 0, rewardMod: 1.0, buyPriceMod: 2.0 },
+      { id: 'material_crash', name: '素材の暴落', desc: '隣町で大鉱脈が発見された。市場に素材が溢れ、安値で買い叩ける。', diffMod: 0, rewardMod: 1.0, buyPriceMod: 0.5 },
+      { id: 'thief_band', name: '野盗の跋扈', desc: '街道に野盗が出没しているらしい。冒険者の生存率が下がり、稼ぎも減ってしまう。', diffMod: 30, rewardMod: 0.7, buyPriceMod: 1.0 },
+      { id: 'holy_blessing', name: '大精霊の加護', desc: '空が神秘的な光に包まれている。今日は何があっても生還できそうな気がする。', diffMod: -50, rewardMod: 1.0, buyPriceMod: 1.0 },
+    ];
+
+    const BOSSES = [
+      { day: 10, name: "狂暴なるオーク", power: 400, rewardMoney: 5000, rewardMats: { steel: 5, magic_stone: 3 } },
+      { day: 30, name: "古代遺跡のゴーレム", power: 2000, rewardMoney: 15000, rewardMats: { mithril: 3, high_magic_stone: 3 } },
+      { day: 50, name: "業火の古竜", power: 6000, rewardMoney: 40000, rewardMats: { orichalcum: 2, adamantite: 2 } },
+      { day: 70, name: "堕ちた天使", power: 15000, rewardMoney: 100000, rewardMats: { god_tear: 2, adamantite: 5 } },
+      { day: 100, name: "破壊神", power: 40000, rewardMoney: 500000, rewardMats: { god_tear: 10 } },
+    ];
+
+    const getTaxAmount = (day) => {
+      if (day === 20) return 2000;
+      if (day === 40) return 8000;
+      if (day === 60) return 25000;
+      if (day === 80) return 60000;
+      return 0;
+    };
+
+    const getNextTaxDay = (currentDay) => {
+      if (currentDay <= 20) return 20;
+      if (currentDay <= 40) return 40;
+      if (currentDay <= 60) return 60;
+      if (currentDay <= 80) return 80;
+      return null;
+    };
+
+    const FAME_THRESHOLDS = [20, 50, 100, 150, 250, 400, 600, 1000, 2000, 5000];
+
+    const VIP_QUESTS = [
+      { id: 0, fameReq: 200, targetRecipe: 'steel_sword', targetName: '鋼の長剣', reqQuality: 'エピック', reqEnchant: null, client: '男爵', rewardMoney: 20000, desc: '「エピック品質の鋼の長剣を納品せよ」', rewardDesc: '報酬: 20,000G' },
+      { id: 1, fameReq: 500, targetRecipe: 'mithril_sword', targetName: 'ミスリルブレード', reqQuality: 'エピック', reqEnchant: null, client: '辺境伯', rewardMoney: 50000, desc: '「エピック品質のミスリルブレードを献上せよ」', rewardDesc: '報酬: 50,000G ＆ 「伝説の炉」の賜与' },
+      { id: 2, fameReq: 1000, targetRecipe: 'god_katana', targetName: '神刀アマテラス', reqQuality: null, reqEnchant: '神がかりの', client: '国王', rewardMoney: 200000, desc: '「"神がかりの"エンチャントが付与された神刀アマテラスを献上せよ」', rewardDesc: '報酬: 200,000G' }
+    ];
+
+    const INITIAL_ACHIEVEMENTS = [
+      { id: 'craft_1', name: '初めの一歩', desc: '武具を1回製作する', condition: (state) => state.stats.crafted >= 1, rewardText: '鉄鉱石 x10', onClaim: (s) => { s.materials.iron += 10; }, claimed: false },
+      { id: 'craft_epic', name: '名工の片鱗', desc: 'エピック品質の武具を製作する', condition: (state) => state.stats.epicCrafted >= 1, rewardText: '金貨 500 G', onClaim: (s) => { s.money += 500; }, claimed: false },
+      { id: 'fame_100', name: '街の有名店', desc: '名声を 100 稼ぐ', condition: (state) => state.fame >= 100, rewardText: '霊木 x5', onClaim: (s) => { s.materials.fine_wood += 5; }, claimed: false },
+      { id: 'sell_10000', name: '商売繁盛', desc: '累計で 10,000 G 売り上げる', condition: (state) => state.stats.totalSales >= 10000, rewardText: '魔石 x5', onClaim: (s) => { s.materials.magic_stone += 5; }, claimed: false },
+      { id: 'trust_100', name: '無二の親友', desc: '冒険者1人の好感度を MAX(100) にする', condition: (state) => state.adventurers.some(a => a.trust >= 100), rewardText: 'ミスリル x2', onClaim: (s) => { s.materials.mithril += 2; }, claimed: false },
+      { id: 'boss_1', name: '街の守護者', desc: '最初のボスを討伐する', condition: (state) => state.stats.bossDefeated >= 1, rewardText: '鋼鉄 x5', onClaim: (s) => { s.materials.steel += 5; }, claimed: false },
+      { id: 'money_100k', name: '莫大な資産', desc: '所持金が 100,000 G を超える', condition: (state) => state.money >= 100000, rewardText: '神の涙 x3', onClaim: (s) => { s.materials.god_tear += 3; }, claimed: false },
+    ];
+
+    // --- ユーティリティ関数 ---
+    const getNextExp = (level) => Math.floor(20 * Math.pow(1.6, level - 1));
+
+    const generateRandomEquip = (currentDay, type, optimalWeight) => {
+      const maxRecipeLevel = Math.max(1, Math.min(15, Math.ceil(currentDay / 8)));
+      const validRecipes = RECIPES.filter(r => r.type === type && r.weight === optimalWeight && r.reqLevel <= maxRecipeLevel);
+      if (validRecipes.length === 0) return null;
+
+      const recipe = validRecipes[Math.floor(Math.random() * validRecipes.length + (validRecipes.length / 2)) % validRecipes.length];
+      return {
+        uid: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        recipeId: recipe.id, name: `普通の${recipe.name}`, quality: 'ノーマル',
+        enchant: null, power: recipe.basePower, baseValue: recipe.baseValue,
+        weight: recipe.weight, category: recipe.category, series: recipe.series, type: recipe.type, 
+        durability: recipe.durability, maxDurability: recipe.durability
+      };
+    };
+
+    // existingAdvs には現在生存している全冒険者のリストを渡す
+    const generateAdventurer = (currentDay, guildLvl, existingAdvs = []) => {
+      const aliveNames = existingAdvs.filter(a => !a.isDead).map(a => a.name);
+      
+      const availableNames = ADVENTURER_NAMES.filter(name => !aliveNames.includes(name));
+      let name;
+      if (availableNames.length > 0) {
+        name = availableNames[Math.floor(Math.random() * availableNames.length)];
+      } else {
+        const baseName = ADVENTURER_NAMES[Math.floor(Math.random() * ADVENTURER_NAMES.length)];
+        name = baseName + (Math.floor(Math.random() * 100) + 2).toString() + "世";
+      }
+
+      let baseClasses = ['戦士', '剣士', '僧侶', '盗賊', '魔法使い'];
+      
+      let advClass = baseClasses[Math.floor(Math.random() * baseClasses.length)];
+      if (currentDay > 20 && Math.random() < Math.min(0.8, currentDay / 100)) {
+        advClass = CLASS_DATA[advClass].advanced || advClass;
+      }
+      
+      const guildBonus = (guildLvl - 1) * 15; 
+      const basePower = Math.floor(Math.random() * 10) + 10 + Math.floor(currentDay * 1.5) + guildBonus;
+      const money = 200 + Math.floor(Math.random() * 200) + (currentDay * 30) + ((guildLvl - 1) * 200);
+      const optWeight = CLASS_DATA[advClass].weight;
+      
+      let initWeapon = null; let initArmor = null; let initShield = null;
+      if (currentDay > 5 && Math.random() < 0.6) initWeapon = generateRandomEquip(currentDay, 'weapon', optWeight);
+      if (currentDay > 10 && Math.random() < 0.5) initArmor = generateRandomEquip(currentDay, 'armor', optWeight);
+      if (currentDay > 15 && Math.random() < 0.4) initShield = generateRandomEquip(currentDay, 'shield', optWeight);
+
+      return {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        name: name, class: advClass, baseClass: advClass, basePower: basePower,
+        money: money, trust: 20 + Math.floor(Math.random() * 20), isDead: false,
+        equips: { weapon: initWeapon, armor: initArmor, shield: initShield }, aliveDays: 0,
+        flavor: FLAVOR_TEXTS[Math.floor(Math.random() * FLAVOR_TEXTS.length)]
+      };
+    };
+
+    const generateQuest = (currentCraftLvl, type, currentDay) => {
+      const availableRecipes = RECIPES.filter(r => r.reqLevel <= currentCraftLvl + 1);
+      const targetRecipe = availableRecipes[Math.floor(Math.random() * availableRecipes.length)] || RECIPES[0];
+      const bonusMats = ['magic_stone', 'steel', 'fine_wood', 'hard_leather', 'mithril', 'dragon_scale'];
+      const rewardMatId = bonusMats[Math.floor(Math.random() * Math.min(bonusMats.length, Math.ceil(currentCraftLvl/2)))];
+      
+      const isLimited = type === 'limited';
+      const rewardMult = isLimited ? 4.5 : 3.0;
+      const deadline = isLimited ? currentDay + Math.floor(Math.random() * 3) + 2 : null; 
+
+      return {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        targetRecipeId: targetRecipe.id, targetName: targetRecipe.name,
+        rewardMoney: Math.floor(targetRecipe.baseValue * rewardMult),
+        rewardMat: rewardMatId,
+        rewardMatAmt: Math.floor(Math.random() * 3) + (isLimited ? 2 : 1),
+        type: type,
+        deadline: deadline,
+        isCompleted: false
+      };
+    };
+
+    const calcEquipPower = (advClass, item) => {
+      if (!item) return { base: 0, final: 0, isOptimalWeight: false, isFavored: false };
+      let pwr = item.durability <= 0 ? Math.floor(item.power * 0.1) : item.power;
+      
+      const classInfo = CLASS_DATA[advClass];
+      const isOptimalWeight = item.weight === classInfo.weight;
+      const isFavored = classInfo.fav && classInfo.fav.includes(item.category);
+      
+      if (!isOptimalWeight) pwr = Math.floor(pwr * 0.5);
+      if (isFavored) pwr = Math.floor(pwr * 1.3); 
+      
+      return { base: item.power, final: pwr, isOptimalWeight, isFavored };
+    };
+
+    const getSeriesBonus = (equips) => {
+      const seriesCount = {};
+      ['weapon', 'armor', 'shield'].forEach(s => {
+        if (equips[s] && equips[s].durability > 0) seriesCount[equips[s].series] = (seriesCount[equips[s].series] || 0) + 1;
+      });
+      let activeSeries = null, multiplier = 1.0, count = 0;
+      for (const [series, c] of Object.entries(seriesCount)) {
+        if (c >= 2) { activeSeries = series; count = c; multiplier = c === 3 ? 1.25 : 1.1; break; }
+      }
+      return { activeSeries, multiplier, count };
+    };
+
+    const calcTotalPowerInfo = (adv) => {
+      const w = calcEquipPower(adv.class, adv.equips.weapon);
+      const a = calcEquipPower(adv.class, adv.equips.armor);
+      const s = calcEquipPower(adv.class, adv.equips.shield);
+      const baseEquipTotal = w.final + a.final + s.final;
+
+      const bonusInfo = getSeriesBonus(adv.equips);
+      const finalEquipPower = Math.floor(baseEquipTotal * bonusInfo.multiplier);
+      
+      return {
+        total: adv.basePower + finalEquipPower,
+        bonusInfo,
+        details: { weapon: w, armor: a, shield: s }
+      };
+    };
+
+    const getAdvSpeech = (adv) => {
+      if (adv.isDead) return "......";
+      if (['weapon', 'armor', 'shield'].some(s => adv.equips[s] && adv.equips[s].durability <= 2)) return "装備がボロボロだ…直してくれないか？";
+      if (adv.money < 100) return "すまん、今日は持ち合わせがなくてね。";
+      if (adv.trust >= 80) return "あんたの打つ武器は最高だ！今日も頼むよ。";
+      if (adv.trust >= 50) return "また来たよ。いい品は入ってるかい？";
+      return "何かいい武器はないか？";
+    };
+    
+    const getReportSpeech = (adv, reward) => {
+      if (adv.isDead) return "(帰らぬ人となった...)";
+      if (reward > 500) return "大漁大漁！あんたの装備のおかげだぜ！";
+      if (['weapon', 'armor', 'shield'].some(s => adv.equips[s] && adv.equips[s].durability <= 0)) return "死ぬかと思った…装備が壊れちまったよ。";
+      return "無事に帰還したよ。次はもっと奥へ行くつもりだ。";
+    };
+
+    const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
+
+    // --- アイコン ---
+    const IconSword = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="14.5" y1="20.5" x2="3.5" y2="9.5"></line><polyline points="14.5 12.5 14.5 20.5 22.5 20.5"></polyline><line x1="9.5" y1="14.5" x2="5.5" y2="18.5"></line></svg>;
+    const IconShield = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>;
+    const IconArmor = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>;
+    const IconUser = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>;
+    const IconUpgrade = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-8m0 0V4m0 8h8m-8 0H4"></path><path d="M12 4l-4 4m4-4l4 4"></path></svg>;
+    const IconLog = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+    const IconSave = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
+    const IconQuest = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 18v-6"></path><circle cx="12" cy="15" r="3"></circle></svg>;
+    const IconDealer = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>;
+    const IconAchievement = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>;
+    const IconSkull = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M14.5 12.5V16a2.5 2.5 0 0 1-5 0v-3.5"></path><path d="M8 12l-2.5 2.5"></path><path d="M16 12l2.5 2.5"></path></svg>;
+    const IconHelp = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+
+    // --- 子コンポーネント ---
+    const DailyEventModal = ({ event, onResolve }) => {
+      if (!event) return null;
+      return (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#F4EFE6] rounded-xl max-w-md w-full border-4 border-[#3E2723] text-[#F4EFE6] shadow-2xl overflow-hidden pop-up">
+            <div className="bg-yellow-600 text-white p-4 flex justify-between items-center border-b-2 border-yellow-700">
+              <h2 className="text-xl font-bold flex items-center gap-2">⚠️ イベント発生！</h2>
+            </div>
+            <div className="p-6">
+              <h3 className="font-bold text-lg mb-2">{event.title}</h3>
+              <p className="text-sm mb-6 text-gray-200">{event.desc}</p>
+              <div className="flex flex-col gap-3">
+                {event.choices.map((choice, idx) => (
+                  <button key={idx} onClick={() => onResolve(choice.onSelect)} className="w-full bg-[#D4AF37] text-dark font-bold py-3 rounded font-bold transition-all active:scale-95 shadow-sm hover:bg-[#2c1b18]">
+                    {choice.text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const QuestCard = ({ quest, inventory, onAbandon, onComplete }) => {
+      const availableItems = inventory.filter(i => i.recipeId === quest.targetRecipeId);
+      const [selectedUid, setSelectedUid] = useState('');
+
+      useEffect(() => {
+        if (availableItems.length > 0 && !availableItems.find(i => i.uid === selectedUid)) {
+          setSelectedUid(availableItems[0].uid);
+        } else if (availableItems.length === 0) {
+          setSelectedUid('');
+        }
+      }, [inventory, availableItems, selectedUid]);
+
+      if (quest.isCompleted) {
+        return (
+          <div className="bg-black/50 p-5 rounded shadow-sm border border-gray-300 flex flex-col justify-center items-center opacity-70">
+            <span className="text-4xl mb-2">✅</span>
+            <p className="font-bold text-gray-400">この依頼は達成済みです</p>
+            {quest.type === 'limited' ? 
+              <p className="text-xs text-gray-400 mt-1">次の日に新しい依頼が来るかもしれません</p> :
+              <p className="text-xs text-gray-400 mt-1">すぐに次の依頼が張り出されます</p>
+            }
+          </div>
+        );
+      }
+
+      return (
+        <div className={`p-5 rounded shadow-md border flex flex-col justify-between ${quest.type === 'limited' ? 'bg-red-50 border-red-300' : 'bg-glass-panel border-[#3E2723]/30'}`}>
+          <div>
+            <h3 className="text-lg font-bold mb-3 border-b pb-2 text-[#E0D0B0]">
+              {quest.type === 'limited' && <span className="text-red-600 mr-2 text-sm">【期限:Day{quest.deadline}】</span>}
+              {!quest.type || quest.type === 'permanent' ? <span className="text-blue-600 mr-2 text-sm">【常設】</span> : null}
+              {quest.targetName}の納品
+            </h3>
+            <div className="bg-black/40 p-3 rounded mb-4 text-sm">
+              <div className="text-gray-400 mb-1">報酬:</div>
+              <div className="font-bold text-green-700 text-lg mb-1">{quest.rewardMoney} G</div>
+              <div className="font-semibold text-blue-800 flex items-center gap-1">
+                + {MATERIALS[quest.rewardMat].name} x{quest.rewardMatAmt}
+              </div>
+            </div>
+            {availableItems.length > 0 ? (
+              <div className="mb-4">
+                <p className="text-xs text-gray-400 mb-2">納品するアイテムを選択:</p>
+                <select className="w-full p-2 border rounded text-sm bg-glass-panel" value={selectedUid} onChange={(e) => setSelectedUid(e.target.value)}>
+                  {availableItems.map(item => ( <option key={item.uid} value={item.uid}>{item.name} (威力: {item.power})</option> ))}
+                </select>
+              </div>
+            ) : (
+              <p className="text-sm text-red-600 mb-4 bg-red-50 p-2 rounded">在庫に該当アイテムがありません。</p>
+            )}
+          </div>
+          <div className="flex gap-2 mt-auto">
+            <button onClick={() => onAbandon(quest.id)} className="px-3 py-2 bg-black/60 text-gray-200 rounded text-sm hover:bg-gray-300 active:scale-95 transition-all">破棄</button>
+            <button onClick={() => { if (selectedUid) onComplete(quest, selectedUid); }} disabled={!selectedUid} className={`flex-1 py-2 rounded font-bold transition-all ${selectedUid ? 'bg-[#D4AF37] text-dark font-bold hover:bg-[#2c1b18] active:scale-95 shadow-sm' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>納品する</button>
+          </div>
+        </div>
+      );
+    };
+
+    // --- メインアプリケーション ---
+    function App() {
+      const [isLoaded, setIsLoaded] = useState(false);
+      const [gameState, setGameState] = useState(() => {
+        try {
+          if (localStorage.getItem('blacksmith_save_v22')) return 'menu';
+        } catch(e) {}
+        return 'opening';
+      }); 
+      
+      const [day, setDay] = useState(1);
+      const [money, setMoney] = useState(1500); 
+      const [fame, setFame] = useState(0); 
+      const [materials, setMaterials] = useState({ iron: 50, wood: 50, leather: 40, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
+      const [inventory, setInventory] = useState([]);
+      const [guildLevel, setGuildLevel] = useState(1);
+      
+      const initAdvs = [];
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
+      initAdvs.push(generateAdventurer(1, 1, initAdvs));
+      const [adventurers, setAdventurers] = useState(initAdvs);
+      
+      const [logs, setLogs] = useState(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
+      
+      const [craftLevel, setCraftLevel] = useState(1);
+      const [craftExp, setCraftExp] = useState(0);
+      const [upgrades, setUpgrades] = useState({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
+      const [stats, setStats] = useState({ crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0, bossDefeated: 0 }); 
+      const [achievements, setAchievements] = useState(() => INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
+
+      const [quests, setQuests] = useState([
+        generateQuest(1, 'permanent', 1), generateQuest(1, 'permanent', 1), 
+        generateQuest(1, 'limited', 1), generateQuest(1, 'limited', 1)
+      ]);
+      const [vipState, setVipState] = useState({ stage: 0, isActive: false });
+      
+      const [dailyEvent, setDailyEvent] = useState(null); 
+      const [activeEvent, setActiveEvent] = useState(null); 
+      const [endingId, setEndingId] = useState(null);
+      const [selectedAdvInfo, setSelectedAdvInfo] = useState(null); 
+      const [shopSelectedItem, setShopSelectedItem] = useState(null);
+      const [shopPricePct, setShopPricePct] = useState(100);
+      const [showDeadAdvs, setShowDeadAdvs] = useState(false); 
+
+      // タブフィルター用
+      const [craftFilter, setCraftFilter] = useState('all'); 
+      const [craftWeightFilter, setCraftWeightFilter] = useState('all'); 
+      const [shopFilter, setShopFilter] = useState('all');
+      const [shopWeightFilter, setShopWeightFilter] = useState('all');
+      const [logFilter, setLogFilter] = useState('all'); 
+
+      // ボス戦結果
+      const [bossReport, setBossReport] = useState(null);
+
+      const [confirmReset, setConfirmReset] = useState(false);
+
+      const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+      const [isTransitioning, setIsTransitioning] = useState(false);
+      const [transitionText, setTransitionText] = useState("");
+
+      const logsEndRef = useRef(null);
+      const toastTimerRef = useRef(null);
+
+      // オートロード（初回のみ）
+      useEffect(() => {
+        try {
+          const saved = localStorage.getItem('blacksmith_save_v22');
+          if (saved) {
+            const data = JSON.parse(saved);
+            setDay(data.day); setMoney(data.money); setFame(data.fame || 0);
+            setMaterials(data.materials); setInventory(data.inventory); setAdventurers(data.adventurers);
+            setLogs(data.logs);
+            setUpgrades(data.upgrades); setCraftLevel(data.craftLevel || 1); setCraftExp(data.craftExp || 0);
+            setGuildLevel(data.guildLevel || 1); setVipState(data.vipState || { stage: 0, isActive: false });
+            setActiveEvent(data.activeEvent || null);
+            setStats(data.stats || { crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0, bossDefeated: 0 });
+            setAchievements(INITIAL_ACHIEVEMENTS.map(baseAch => {
+              const savedAch = (data.achievements || []).find(a => a.id === baseAch.id);
+              return { ...baseAch, ...(savedAch || {}) };
+            }));
+            setQuests(data.quests || [generateQuest(1, 'permanent', 1), generateQuest(1, 'permanent', 1), generateQuest(1, 'limited', 1), generateQuest(1, 'limited', 1)]);
+            setGameState('menu'); 
+          }
+        } catch (e) {}
+        setIsLoaded(true);
+      }, []);
+
+      // 完全オートセーブ機構
+      useEffect(() => {
+        if (!isLoaded || gameState === 'opening') return; 
+        const timer = setTimeout(() => {
+          try {
+            const data = { day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent };
+            localStorage.setItem('blacksmith_save_v22', JSON.stringify(data));
+          } catch (e) {
+            console.warn("Auto-save failed:", e);
+          }
+        }, 1000); 
+        return () => clearTimeout(timer);
+      }, [day, money, fame, materials, inventory, adventurers, logs, upgrades, stats, achievements, quests, craftLevel, craftExp, guildLevel, vipState, activeEvent, isLoaded, gameState]);
+
+      useEffect(() => {
+        if (gameState === 'log' && logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }, [logs, gameState, logFilter]);
+
+      useEffect(() => { setShopPricePct(100); }, [shopSelectedItem]);
+
+      const showToast = (message, type = 'info') => {
+        setToast({ visible: true, message, type });
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => { setToast(prev => ({ ...prev, visible: false })); }, 3000);
+      };
+
+      const addLog = (msg) => {
+        setLogs(prev => {
+          const lastLog = prev[prev.length - 1];
+          const prefix = `[Day ${day}] `;
+          if (lastLog) {
+            const lastMsgMatch = lastLog.match(/\[Day \d+\] (.*?)(?:\s+\(x\d+\))?$/);
+            if (lastMsgMatch && lastMsgMatch[1] === msg) {
+              const countMatch = lastLog.match(/\(x(\d+)\)$/);
+              const count = countMatch ? parseInt(countMatch[1]) + 1 : 2;
+              return [...prev.slice(0, -1), `${prefix}${msg} (x${count})`];
+            }
+          }
+          return [...prev, `${prefix}${msg}`];
+        });
+      };
+
+      useEffect(() => {
+        if(!isLoaded) return;
+        setAchievements(prev => {
+          let updated = false;
+          const newAchievements = prev.map(ach => {
+            if (!ach.claimed && !ach.unlocked && ach.condition({ stats, fame, adventurers, day, money })) {
+              updated = true;
+              return { ...ach, unlocked: true }; 
+            }
+            return ach;
+          });
+          if (updated) {
+            showToast('🏆 新しい実績を達成しました！', 'success');
+            return newAchievements;
+          }
+          return prev;
+        });
+      }, [stats, fame, adventurers, day, money, isLoaded]);
+
+      const claimAchievement = (achId) => {
+        const ach = achievements.find(a => a.id === achId);
+        if (!ach || ach.claimed) return;
+        
+        const tempState = { money, materials: { ...materials } };
+        ach.onClaim(tempState); 
+        setMoney(tempState.money);
+        setMaterials(tempState.materials);
+
+        setAchievements(prev => prev.map(a => a.id === achId ? { ...a, claimed: true, unlocked: false } : a));
+        showToast(`${ach.name} の報酬を受け取りました！`, 'success');
+        addLog(`🏆【実績達成】「${ach.name}」を達成し、報酬を得た。`);
+      };
+
+      const resetGame = () => {
+        if (confirmReset) {
+          try { localStorage.removeItem('blacksmith_save_v22'); } catch(e){}
+          setDay(1); setMoney(1500); setFame(0);
+          setMaterials({ iron: 50, wood: 50, leather: 40, steel: 0, fine_wood: 0, hard_leather: 0, mithril: 0, dragon_scale: 0, magic_stone: 0, high_magic_stone: 0, orichalcum: 0, adamantite: 0, god_tear: 0 });
+          setInventory([]); setGuildLevel(1); 
+          const newAdvs = [];
+          newAdvs.push(generateAdventurer(1, 1, newAdvs));
+          newAdvs.push(generateAdventurer(1, 1, newAdvs));
+          newAdvs.push(generateAdventurer(1, 1, newAdvs));
+          setAdventurers(newAdvs);
+          setLogs(["【開店】親方から譲り受けた小さな工房。今日からここが俺の城だ。"]);
+          setCraftLevel(1); setCraftExp(0); setUpgrades({ forgeLevel: 0, haggleLevel: 0, shopLevel: 0 });
+          setStats({ crafted: 0, epicCrafted: 0, totalSales: 0, pendingFameAdvs: 0, bossDefeated: 0 }); 
+          setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a })));
+          setQuests([generateQuest(1, 'permanent', 1), generateQuest(1, 'permanent', 1), generateQuest(1, 'limited', 1), generateQuest(1, 'limited', 1)]); 
+          setVipState({ stage: 0, isActive: false });
+          setActiveEvent(null); setEndingId(null); setBossReport(null); setConfirmReset(false);
+          setCraftFilter('all'); setCraftWeightFilter('all'); setShopFilter('all'); setShopWeightFilter('all');
+          setGameState('opening'); 
+        } else {
+          setConfirmReset(true); setTimeout(() => setConfirmReset(false), 3000);
+        }
+      };
+
+      const getDungeonDifficulty = (currentDay) => {
+        let diff = Math.floor(currentDay * 8 + 15 + (currentDay > 50 ? (currentDay - 50) * 5 : 0)); 
+        if (activeEvent) diff += activeEvent.diffMod;
+        return diff;
+      };
+
+      const gainExp = (amount) => {
+        let currentExp = craftExp + amount;
+        let currentLvl = craftLevel;
+        let leveledUp = false;
+        while (currentExp >= getNextExp(currentLvl) && currentLvl < 15) { 
+          currentExp -= getNextExp(currentLvl);
+          currentLvl++; leveledUp = true;
+        }
+        setCraftExp(currentExp);
+        if (leveledUp) {
+          setCraftLevel(currentLvl);
+          addLog(`🎉【成長】職人としての腕前が上がり、工房レベルが ${currentLvl} になった！`);
+        }
+      };
+
+      const handleCraft = (recipe) => {
+        for (const [matId, reqAmt] of Object.entries(recipe.req)) {
+          if ((materials[matId] || 0) < reqAmt) {
+            showToast(`${recipe.name}を作る素材が足りません！`, 'error'); return;
+          }
+        }
+
+        const newMaterials = { ...materials };
+        for (const [matId, reqAmt] of Object.entries(recipe.req)) { newMaterials[matId] -= reqAmt; }
+        setMaterials(newMaterials);
+
+        let qualityRoll = Math.random() * 100 + (upgrades.forgeLevel * 10);
+        if (vipState.stage >= 2) qualityRoll += 50; 
+
+        let qualityStr = "ノーマル"; let qMultiplier = 1.0;
+        if (qualityRoll > 95) { qualityStr = "エピック"; qMultiplier = 1.6; }
+        else if (qualityRoll > 70) { qualityStr = "レア"; qMultiplier = 1.3; }
+        else if (qualityRoll < 5) { qualityStr = "粗悪"; qMultiplier = 0.7; }
+
+        let appliedEnchant = null;
+        if (vipState.stage >= 2 && Math.random() * 100 < 30) {
+          appliedEnchant = ENCHANTS.find(e => e.id === 'divine');
+        } else {
+          const enchantChance = 10 + (upgrades.forgeLevel * 5) + (qualityStr === 'エピック' ? 30 : 0) + (vipState.stage >= 2 ? 30 : 0);
+          if (Math.random() * 100 < enchantChance) {
+            const normalEnchants = ENCHANTS.filter(e => e.weight > 0);
+            const totalWeight = normalEnchants.reduce((sum, e) => sum + e.weight, 0);
+            let rand = Math.random() * totalWeight;
+            for (const e of normalEnchants) { rand -= e.weight; if (rand <= 0) { appliedEnchant = e; break; } }
+          }
+        }
+
+        const finalPower = Math.floor(recipe.basePower * qMultiplier * (appliedEnchant ? appliedEnchant.powerMult : 1));
+        const finalValue = Math.floor(recipe.baseValue * qMultiplier * (appliedEnchant ? appliedEnchant.valueMult : 1));
+        const fullName = appliedEnchant ? `[${appliedEnchant.name}] ${recipe.name}` : recipe.name;
+
+        const newItem = {
+          uid: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+          recipeId: recipe.id, name: `${qualityStr}な${fullName}`, quality: qualityStr,
+          enchant: appliedEnchant ? appliedEnchant.name : null, power: finalPower, baseValue: finalValue,
+          weight: recipe.weight, category: recipe.category, series: recipe.series, type: recipe.type, durability: recipe.durability, maxDurability: recipe.durability
+        };
+
+        setInventory([...inventory, newItem]);
+        setStats(s => ({ ...s, crafted: s.crafted + 1, epicCrafted: qualityStr === 'エピック' ? s.epicCrafted + 1 : s.epicCrafted }));
+        
+        if (appliedEnchant && appliedEnchant.id === 'divine') { addLog(`🔆【神業】神々しい光を放つ ${newItem.name} が誕生した...!!`); showToast(`神業！ ${newItem.name} が完成しました`, 'success'); }
+        else if (appliedEnchant || qualityStr === "エピック") { addLog(`✨【名作誕生】炉の炎が青く輝き、${newItem.name}が打ち上がった！`); showToast(`大成功！ ${newItem.name} が完成`, 'success'); }
+        else if (qualityStr === "粗悪") { addLog(`【製作】少し叩き損ねたが、${newItem.name}が完成した。`); showToast(`${newItem.name} が完成(品質:低)`, 'info'); }
+        else { addLog(`【製作】汗を流し、${newItem.name}を打ち上げた。`); showToast(`${newItem.name} が完成`, 'success'); }
+
+        gainExp(Math.max(5, Math.floor(recipe.baseValue / 4)));
+      };
+
+      const handleSell = (item, advId, pricePercentage) => {
+        const advIndex = adventurers.findIndex(a => a.id === advId);
+        if (advIndex === -1) return;
+        const adv = adventurers[advIndex];
+        const askPrice = Math.floor(item.baseValue * (pricePercentage / 100));
+        const effectiveMoney = adv.money * (1 + (upgrades.haggleLevel * 0.1)) * (1 + (adv.trust / 100));
+
+        if (effectiveMoney < askPrice) {
+          showToast(`${adv.name} は予算オーバーです`, 'error');
+          addLog(`【交渉決裂】${adv.name}「ぼったくりだ！そんな金は払えないよ」と怒ってしまった。`);
+          const newAdvs = [...adventurers]; newAdvs[advIndex].trust = Math.max(0, adv.trust - 5); setAdventurers(newAdvs);
+          return;
+        }
+
+        setMoney(m => m + askPrice);
+        setInventory(inv => inv.filter(i => i.uid !== item.uid));
+        setStats(s => ({ ...s, totalSales: s.totalSales + askPrice }));
+        setShopSelectedItem(null); setShopPricePct(100);
+        showToast(`${item.name} を売却！ (+${askPrice}G)`, 'success');
+        
+        let trustChange = pricePercentage <= 80 ? 5 : pricePercentage <= 110 ? 1 : -5;
+        if (item.weight === CLASS_DATA[adv.class].weight) trustChange += 2; else trustChange -= 2;
+
+        const newAdvs = [...adventurers];
+        
+        // 限界予算に対する支払い額の割合で、実際の所持金を減らす（所持金が不自然に0に張り付くのを防ぐ）
+        const remainingRatio = Math.max(0, (effectiveMoney - askPrice) / effectiveMoney);
+        newAdvs[advIndex].money = Math.floor(adv.money * remainingRatio);
+
+        newAdvs[advIndex].trust = Math.min(100, newAdvs[advIndex].trust + trustChange);
+        newAdvs[advIndex].equips = { ...newAdvs[advIndex].equips, [item.type]: item };
+
+        setAdventurers(newAdvs);
+        if (item.weight !== CLASS_DATA[adv.class].weight) addLog(`【売却】${adv.name}に ${askPrice}G で売れたが、「重さが合わないな…」と渋い顔をしていた。`);
+        else addLog(`【売却】${adv.name}は「これは良い品だ！」と喜び、${askPrice}G を支払っていった。`);
+      };
+
+      const handleRepair = (advId, slot) => {
+        const advIndex = adventurers.findIndex(a => a.id === advId);
+        if (advIndex === -1) return;
+        const adv = adventurers[advIndex];
+        const item = adv.equips[slot];
+        if (!item || item.durability >= item.maxDurability) return;
+
+        const repairCost = Math.max(1, Math.floor((item.maxDurability - item.durability) * (item.baseValue / 20)));
+        const effectiveMoney = adv.money * (1 + (upgrades.haggleLevel * 0.1)) * (1 + (adv.trust / 100));
+
+        if (effectiveMoney < repairCost) {
+          showToast(`${adv.name} は修理代を持っていません`, 'error');
+          addLog(`【交渉】${adv.name}「修理したいが、金が足りない…」`);
+          return;
+        }
+
+        setMoney(m => m + repairCost);
+        const newAdvs = [...adventurers];
+
+        const remainingRatio = Math.max(0, (effectiveMoney - repairCost) / effectiveMoney);
+        newAdvs[advIndex].money = Math.floor(adv.money * remainingRatio);
+
+        newAdvs[advIndex].trust = Math.min(100, adv.trust + 2); 
+        newAdvs[advIndex].equips[slot].durability = item.maxDurability;
+
+        setAdventurers(newAdvs);
+        showToast(`装備を修理しました (+${repairCost}G)`, 'success');
+        addLog(`【修理】${adv.name}の ${item.name} を修理し、${repairCost}G を得た。`);
+      };
+
+      const handleMarketSell = (item) => {
+        const sellPrice = Math.floor(item.baseValue * 0.8); 
+        let fameGained = Math.floor(item.baseValue / 40) + (item.quality === 'レア' ? 2 : item.quality === 'エピック' ? 6 : 0) + (item.enchant ? 4 : 0);
+        fameGained = Math.max(1, fameGained); 
+
+        const oldLevel = FAME_THRESHOLDS.filter(t => fame >= t).length;
+        const newFame = fame + fameGained;
+        const newLevel = FAME_THRESHOLDS.filter(t => newFame >= t).length;
+        const fameAdvGained = newLevel > oldLevel ? (newLevel - oldLevel) : 0;
+
+        setMoney(m => m + sellPrice); 
+        setFame(newFame);
+        setInventory(inv => inv.filter(i => i.uid !== item.uid));
+        setStats(s => ({ ...s, totalSales: s.totalSales + sellPrice, pendingFameAdvs: (s.pendingFameAdvs || 0) + fameAdvGained }));
+        setShopSelectedItem(null); 
+        setShopPricePct(100);
+
+        showToast(`市場卸し: +${sellPrice}G / ⭐+${fameGained}`, 'success');
+        addLog(`💰【市場卸し】${item.name} を市場へ流した。${sellPrice}G の利益と、名声 ${fameGained} を得た！`);
+
+        if (fameAdvGained > 0) {
+            addLog(`🌟【名声上昇】街での評判が上がった。明日になれば新たな冒険者が訪れるかもしれない。`);
+        }
+      };
+
+      const handleBuyMaterial = (matId, amount, cost) => {
+        if (money < cost) { showToast(`資金が足りません！`, 'error'); return; }
+        setMoney(m => m - cost); setMaterials(prev => ({ ...prev, [matId]: prev[matId] + amount }));
+        showToast(`${MATERIALS[matId].name} を仕入れました`, 'success');
+        addLog(`📦【仕入】問屋から ${MATERIALS[matId].name} を ${amount}個買い付けた。`);
+      };
+
+      const handleUpgrade = (type, cost) => {
+        if (money < cost) { showToast(`資金が足りません！`, 'error'); return; }
+        setMoney(m => m - cost); setUpgrades(prev => ({ ...prev, [type]: prev[type] + 1 }));
+        showToast(`設備を拡張しました！`, 'success');
+        addLog(`【設備投資】職人を呼び、工房の設備を拡張した。`);
+      };
+
+      const handleGuildInvest = () => {
+        const cost = 1000 * guildLevel;
+        if (money >= cost) {
+          setMoney(m => m - cost); setGuildLevel(l => l + 1);
+          showToast(`ギルドへ投資しました！`, 'success');
+          addLog(`🤝【ギルド投資】ギルドに ${cost}G 寄付した。新人冒険者の質が上がるだろう。`);
+        } else { showToast(`資金が足りません！`, 'error'); }
+      };
+
+      const completeQuest = (quest, itemUid) => {
+        setInventory(inv => inv.filter(i => i.uid !== itemUid));
+        setMoney(m => m + quest.rewardMoney);
+        setMaterials(mats => ({ ...mats, [quest.rewardMat]: (mats[quest.rewardMat] || 0) + quest.rewardMatAmt }));
+        setStats(s => ({ ...s, totalSales: s.totalSales + quest.rewardMoney }));
+        showToast(`依頼を達成しました！`, 'success');
+        addLog(`【ギルド納品】依頼の品を納め、金貨 ${quest.rewardMoney}G と素材を受け取った。`);
+        
+        setQuests(prev => prev.map(q => {
+          if (q.id === quest.id) {
+            if (quest.type === 'permanent') return generateQuest(craftLevel, 'permanent', day);
+            else return { ...q, isCompleted: true };
+          }
+          return q;
+        }));
+      };
+
+      const abandonQuest = (questId) => {
+        const quest = quests.find(q => q.id === questId);
+        showToast(`依頼を破棄しました`, 'info');
+        addLog(`【ギルド】手に負えない依頼を破棄した。`);
+
+        if(quest && quest.type === 'permanent') {
+          setQuests(prev => prev.map(q => q.id === questId ? generateQuest(craftLevel, 'permanent', day) : q));
+        } else {
+          setQuests(prev => prev.filter(q => q.id !== questId));
+        }
+      };
+
+      const handleVipQuestComplete = () => {
+        const currentVip = VIP_QUESTS[vipState.stage];
+        const targetItem = inventory.find(i => 
+          i.recipeId === currentVip.targetRecipe && 
+          (!currentVip.reqQuality || i.quality === currentVip.reqQuality) &&
+          (!currentVip.reqEnchant || i.enchant === currentVip.reqEnchant)
+        );
+        if (!targetItem) return;
+
+        setInventory(inv => inv.filter(i => i.uid !== targetItem.uid));
+        setMoney(m => m + currentVip.rewardMoney);
+        
+        const nextStage = vipState.stage + 1;
+        setVipState({ stage: nextStage, isActive: false });
+        
+        showToast(`${currentVip.client}の特命を果たしました！`, 'success');
+        addLog(`👑【王室御用達】${currentVip.client}からの特命を見事果たした！報酬${currentVip.rewardMoney}Gを得た！`);
+        if (currentVip.id === 1) {
+          addLog(`🔥【恩恵】王家より「伝説の炉」が下賜された！製作の品質とエンチャント確率が大幅に上がる！`);
+        }
+      };
+
+      const triggerDailyEvent = () => {
+        const events = [
+          {
+            title: "怪しい行商人",
+            desc: "「ヘッヘッヘ…旦那、良いモン入ってまっせ。500Gでどうだい？」",
+            choices: [
+              { text: "箱を買う (500G)", onSelect: () => {
+                  setMoney(currentMoney => {
+                    if (currentMoney >= 500) {
+                      if (Math.random() > 0.5) {
+                        setMaterials(m => ({ ...m, magic_stone: m.magic_stone + 3 }));
+                        addLog("🎁【イベント】箱の中身は『魔石x3』だった！良い買い物だ。");
+                      } else {
+                        setMaterials(m => ({ ...m, wood: m.wood + 1 }));
+                        addLog("🎁【イベント】箱の中身は『木材x1』だった…騙された！");
+                      }
+                      return currentMoney - 500;
+                    } else {
+                      addLog("🎁【イベント】金が足りず商人は去っていった。");
+                      return currentMoney;
+                    }
+                  });
+                } 
+              },
+              { text: "追い払う", onSelect: () => { addLog("🎁【イベント】怪しい商人を追い払った。"); } }
+            ]
+          },
+          {
+            title: "冒険者からの頼み",
+            desc: "駆け出しの冒険者が頭を下げている。「どうしても防具が必要なんです！200G、貸してくれませんか？」",
+            choices: [
+              { text: "金を貸す (200G)", onSelect: () => {
+                  setMoney(currentMoney => {
+                    if (currentMoney >= 200) {
+                      setFame(f => f + 15);
+                      addLog("🤝【イベント】若者に200G貸してやった。街での評判（名声+15）が少し上がったようだ。");
+                      return currentMoney - 200;
+                    } else {
+                      addLog("🤝【イベント】金がなく、申し出を断った。");
+                      return currentMoney;
+                    }
+                  });
+                }
+              },
+              { text: "断る", onSelect: () => { addLog("🤝【イベント】うちは金貸しじゃない、と断った。"); } }
+            ]
+          },
+          {
+            title: "鍛冶の閃き",
+            desc: "夜中にふと、新しい製法のアイデアが浮かんできた。徹夜で研究すれば形になるかもしれないが…",
+            choices: [
+              { text: "徹夜で研究する", onSelect: () => {
+                  gainExp(50);
+                  addLog("💡【イベント】徹夜の研究が実を結び、大きな経験値を得た！（EXP+50）");
+                }
+              },
+              { text: "しっかり寝る", onSelect: () => { addLog("💡【イベント】無理は禁物だ。布団に入った。"); } }
+            ]
+          },
+          {
+            title: "一攫千金のギャンブル",
+            desc: "胡散臭い男がサイコロゲームを持ちかけてきた。「1000G賭けてみないか？ 勝てば倍だ！」",
+            choices: [
+              { text: "勝負する (1000G)", onSelect: () => { 
+                  setMoney(currentMoney => {
+                    if(currentMoney >= 1000) {
+                       if(Math.random() > 0.5) { addLog("🎲 見事勝利し、1000G儲けた！"); return currentMoney + 1000; }
+                       else { addLog("🎲 イカサマか！？ 1000Gすってしまった..."); return currentMoney - 1000; }
+                    } else { addLog("金が足りないと言ったら男は鼻で笑って去っていった。"); return currentMoney; }
+                  });
+                }
+              },
+              { text: "追い払う", onSelect: () => { addLog("仕事の邪魔だ、と男を追い払った。"); } }
+            ]
+          },
+          {
+            title: "裏ルートの取引",
+            desc: "フードを目深に被った男が囁く。「王城から横流しされた『オリハルコン』だ。1000Gでどうだ？ただし、バレたらお前の名も傷つくぜ」",
+            choices: [
+              { text: "買い取る (1000G / 名声-50)", onSelect: () => {
+                  setMoney(currentMoney => {
+                    if(currentMoney >= 1000) {
+                       setFame(f => Math.max(0, f - 50)); 
+                       setMaterials(m=>({...m, orichalcum: m.orichalcum+1}));
+                       addLog("🤫【裏取引】名声を犠牲にして、オリハルコンを手に入れた。");
+                       return currentMoney - 1000;
+                    } else { addLog("金が足りないようだ。"); return currentMoney; }
+                  });
+              }},
+              { text: "断る", onSelect: () => { addLog("真っ当な商売しかしないと断った。"); } }
+            ]
+          },
+          {
+            title: "孤児からの贈り物",
+            desc: "薄汚れた孤児が、拾ったという奇妙な石を差し出してきた。「おじちゃん、これ買って！」",
+            choices: [
+              { text: "100Gで買ってやる", onSelect: () => {
+                  setMoney(currentMoney => {
+                    if(currentMoney >= 100) {
+                       if(Math.random() > 0.3) { setMaterials(m=>({...m, magic_stone: m.magic_stone+2})); addLog("🎁【イベント】孤児から買い取った石は『魔石x2』だった。"); }
+                       else { setMaterials(m=>({...m, god_tear: m.god_tear+1})); addLog("🎁【奇跡】孤児から買い取った石を磨くと、なんと『神の涙』になった！"); }
+                       return currentMoney - 100;
+                    } else { addLog("手持ちがなく、ごめんよと謝った。"); return currentMoney; }
+                  });
+              }},
+              { text: "ただの石ころだと教える", onSelect: () => { addLog("孤児はしょんぼりして帰っていった。"); } }
+            ]
+          },
+          {
+            title: "素材問屋の視察",
+            desc: "素材問屋の主人が工房を訪れた。「日頃の付き合いだ。少しばかりサービスしよう」",
+            choices: [
+              { text: "話を聞く", onSelect: () => {
+                  setMaterials(m=>({...m, iron: m.iron+20, wood: m.wood+20}));
+                  addLog("📦【イベント】問屋の主人から、鉄鉱石x20 と 木材x20 を無償で譲ってもらった！");
+              }}
+            ]
+          },
+          {
+            title: "ギルドの設備修繕依頼",
+            desc: "ギルド長から直々の頼みだ。「ギルドの訓練用ダミーを直してほしい。報酬は弾むぞ」",
+            choices: [
+              { text: "引き受ける (鉄鉱石x10 消費)", onSelect: () => {
+                  if (materials.iron >= 10) {
+                    setMaterials(m=>({...m, iron: m.iron - 10}));
+                    setMoney(m=>m+800);
+                    addLog("🛠️【イベント】鉄鉱石を消費して修繕を終えた。800Gの報酬を得た！");
+                  } else { addLog("鉄鉱石が足りず、断らざるを得なかった。"); }
+              }},
+              { text: "忙しいと断る", onSelect: () => { addLog("今は工房の仕事で手一杯だ。"); } }
+            ]
+          }
+        ];
+        
+        if (Math.random() < 0.3) { 
+          setDailyEvent(events[Math.floor(Math.random() * events.length)]);
+        }
+      };
+
+      const handleEventResolve = (action) => { action(); setDailyEvent(null); };
+
+      const advanceDay = () => {
+        if (isTransitioning) return; 
+        setBossReport(null);
+        setTransitionText(`Day ${day} 終了...`);
+        setIsTransitioning(true);
+
+        setTimeout(() => {
+          addLog(`--- 探索フェーズ（夜明け） ---`);
+          let earnedMaterials = { ...materials };
+          let newAdvs = [...adventurers];
+          let activeAdvsCount = 0;
+          let reportLogs = []; 
+          let currentMoney = money; 
+
+          // ボス襲来判定 (10, 30, 50, 70, 100日目)
+          const targetBoss = [10, 30, 50, 70, 100].includes(day) ? BOSSES.find(b => b.day === day) : null;
+          
+          if (targetBoss) {
+            const aliveAdvs = newAdvs.filter(a => !a.isDead);
+            const totalTownPower = aliveAdvs.reduce((sum, adv) => sum + calcTotalPowerInfo(adv).total, 0);
+            
+            addLog(`💀【ボス襲来】${targetBoss.name} が街に迫る！ 街の総戦力:${totalTownPower} vs ボス:${targetBoss.power}`);
+            
+            if (totalTownPower >= targetBoss.power) {
+              let earnedMatsStr = [];
+              for(const [matId, amt] of Object.entries(targetBoss.rewardMats)) {
+                earnedMaterials[matId] = (earnedMaterials[matId] || 0) + amt;
+                earnedMatsStr.push(`${MATERIALS[matId].name}x${amt}`);
+              }
+              currentMoney += targetBoss.rewardMoney;
+              setFame(f => f + 100);
+              setStats(s => ({ ...s, bossDefeated: (s.bossDefeated || 0) + 1 }));
+              addLog(`🎉【ボス討伐】冒険者たちは協力し、${targetBoss.name}を討ち果たした！`);
+              addLog(`🎁【特別報酬】${targetBoss.rewardMoney}G と ${earnedMatsStr.join(', ')} を得た！`);
+              setBossReport({ success: true, boss: targetBoss, money: targetBoss.rewardMoney, mats: earnedMatsStr.join(', ') });
+            } else {
+              addLog(`🔥【防衛失敗】冒険者たちは敗走し、街は大きな被害を受けた...`);
+              newAdvs.forEach(adv => {
+                if (!adv.isDead) {
+                  adv.trust = Math.max(0, adv.trust - 30);
+                  ['weapon', 'armor', 'shield'].forEach(slot => { if(adv.equips[slot]) adv.equips[slot].durability = 0; });
+                }
+              });
+              setBossReport({ success: false, boss: targetBoss });
+            }
+          }
+
+          let activeEnvEvent = null;
+          if (!targetBoss && Math.random() * 100 < 20) {
+            activeEnvEvent = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+            setActiveEvent(activeEnvEvent);
+            addLog(`📢【噂話】街で噂が流れている...「${activeEnvEvent.name}」`);
+          } else { setActiveEvent(null); }
+
+          const diffScore = getDungeonDifficulty(day);
+          const rewardMod = activeEnvEvent ? activeEnvEvent.rewardMod : 1.0;
+          const buyMod = activeEnvEvent ? activeEnvEvent.buyPriceMod : 1.0;
+
+          // 通常探索処理のサマリー化
+          if (!targetBoss) {
+            let totalBuyPrice = 0; 
+            let totalBoughtMats = {};
+            let deadNames = [];
+            let awokenNames = [];
+            let aliveCount = 0;
+
+            newAdvs.forEach(adv => {
+              if (adv.isDead) return;
+              activeAdvsCount++; adv.aliveDays += 1;
+
+              if (adv.trust >= 80 && adv.aliveDays >= 10 && calcTotalPowerInfo(adv).total >= 100 && CLASS_DATA[adv.class].advanced) {
+                const oldClass = adv.class;
+                adv.class = CLASS_DATA[adv.class].advanced;
+                adv.basePower += 50; 
+                awokenNames.push(`${adv.name}(${adv.class})`);
+              }
+
+              const totalPower = calcTotalPowerInfo(adv).total;
+              
+              // 割合によるマイルドな生存確率計算
+              const powerRatio = (totalPower - diffScore) / Math.max(1, diffScore);
+              const survivalBase = 60 + (powerRatio * 50);
+              let survivalRate = Math.max(5, Math.min(95, survivalBase + (upgrades.shopLevel * 5)));
+              
+              if (Math.random() * 100 > survivalRate) {
+                adv.isDead = true;
+                deadNames.push(adv.name);
+                reportLogs.push({ name: adv.name, class: adv.class, isDead: true, speech: getReportSpeech(adv, 0) });
+              } else {
+                aliveCount++;
+                const rewardMoney = Math.floor((Math.random() * 100 + day * 15) * (1 + upgrades.haggleLevel * 0.2) * rewardMod);
+                adv.money += rewardMoney;
+
+                ['weapon', 'armor', 'shield'].forEach(slot => { if (adv.equips[slot] && adv.equips[slot].durability > 0) adv.equips[slot].durability -= 1; });
+
+                const numDrops = Math.floor(Math.random() * 3) + 1; 
+
+                for (let i = 0; i < numDrops; i++) {
+                  let dropRarity = 1;
+                  if (Math.random() * 100 < adv.trust + (day / 2)) dropRarity = 2;
+                  if (Math.random() * 100 < adv.trust / 2 + (day / 4) || ['アサシン', '剣聖'].includes(adv.class)) dropRarity = 3;
+
+                  const possibleMats = Object.values(MATERIALS).filter(m => m.rarity <= dropRarity);
+                  const dropMat = possibleMats[Math.floor(Math.random() * possibleMats.length)];
+                  const dropAmt = Math.floor(Math.random() * 4) + 2 + Math.floor(day / 20); 
+
+                  const discount = (upgrades.haggleLevel * 0.1) + (adv.trust / 200);
+                  const buyPrice = Math.floor(dropMat.basePrice * dropAmt * Math.max(0.3, (1.2 - discount)) * buyMod);
+                  
+                  if (currentMoney - totalBuyPrice >= buyPrice && Math.random() * 100 < (adv.trust + 50)) { 
+                     totalBuyPrice += buyPrice; 
+                     earnedMaterials[dropMat.id] = (earnedMaterials[dropMat.id] || 0) + dropAmt;
+                     totalBoughtMats[dropMat.id] = (totalBoughtMats[dropMat.id] || 0) + dropAmt;
+                  }
+                }
+
+                reportLogs.push({ name: adv.name, class: adv.class, isDead: false, speech: getReportSpeech(adv, rewardMoney) });
+              }
+            });
+
+            if (awokenNames.length > 0) {
+              addLog(`✨【覚醒】${awokenNames.join('、')} が上位職に覚醒した！`);
+            }
+            if (deadNames.length > 0) {
+              addLog(`🩸【悲劇】${deadNames.join('、')} がダンジョンから帰還しなかった...`);
+            }
+
+            let boughtMatsStr = Object.entries(totalBoughtMats).map(([id, amt]) => `${MATERIALS[id].name}x${amt}`).join(', ');
+            let summaryStr = `【探索】${aliveCount}人が無事帰還。`;
+            if (totalBuyPrice > 0) {
+              summaryStr += `素材(${boughtMatsStr})を計 ${totalBuyPrice}G で買い取った。`;
+              currentMoney -= totalBuyPrice; 
+            }
+            addLog(summaryStr);
+
+          } else {
+             newAdvs.forEach(adv => { if (!adv.isDead) activeAdvsCount++; });
+          }
+
+          if (day % 5 === 0 || activeAdvsCount < 3) {
+             const newAdv = generateAdventurer(day, guildLevel, newAdvs); 
+             newAdvs.push(newAdv);
+             addLog(`🌟【新規来店】新しい冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた。`);
+          }
+
+          // 名声上昇による追加の冒険者来店処理
+          const pendingCount = stats.pendingFameAdvs || 0;
+          if (pendingCount > 0) {
+             for (let i = 0; i < pendingCount; i++) {
+                const newAdv = generateAdventurer(day, guildLevel, newAdvs);
+                newAdvs.push(newAdv);
+                addLog(`🌟【名声】噂を聞きつけた新たな冒険者 ${newAdv.name} (${newAdv.class}) が店を訪れた！`);
+             }
+             setStats(s => ({ ...s, pendingFameAdvs: 0 }));
+          }
+
+          setMaterials(earnedMaterials); setAdventurers(newAdvs); setShopSelectedItem(null); setShopPricePct(100);
+          
+          // 納税タイミング (20, 40, 60, 80日目。100日目は免除)
+          if (day === 20 || day === 40 || day === 60 || day === 80) {
+            const tax = getTaxAmount(day); 
+            currentMoney -= tax;
+            addLog(`📜【納税】徴税吏に店舗税 ${tax} G を納めた。`); 
+            setMoney(currentMoney);
+            if (currentMoney < 0) { setEndingId('bankrupt'); setIsTransitioning(false); setGameState('ending'); return; }
+          } else {
+            setMoney(currentMoney);
+          }
+
+          if (!vipState.isActive && vipState.stage < VIP_QUESTS.length) {
+            const nextVip = VIP_QUESTS[vipState.stage];
+            if (fame >= nextVip.fameReq) {
+              setVipState(prev => ({ ...prev, isActive: true }));
+              addLog(`👑【特命】${nextVip.client}の使者が訪れた。${nextVip.desc}とのことだ…！`);
+            }
+          }
+
+          // クエストの期限管理と補充
+          let nextQuests = quests.filter(q => q.type === 'permanent' || (q.type === 'limited' && !q.isCompleted && q.deadline >= day + 1));
+          const limitedCount = nextQuests.filter(q => q.type === 'limited').length;
+          for(let i=limitedCount; i < 2; i++) {
+              nextQuests.push(generateQuest(craftLevel, 'limited', day + 1));
+          }
+          const permCount = nextQuests.filter(q => q.type === 'permanent').length;
+          for(let i=permCount; i < 2; i++) {
+              nextQuests.push(generateQuest(craftLevel, 'permanent', day + 1));
+          }
+          setQuests(nextQuests);
+
+          if (day >= 100) { checkEnding(currentMoney, newAdvs); setIsTransitioning(false); return; }
+
+          setDay(d => d + 1);
+          if (!targetBoss) setLogs(prev => [...prev, "=== REPORT_START ===", JSON.stringify(reportLogs)]); 
+          
+          triggerDailyEvent(); 
+          
+          setTransitionText(`Day ${day + 1} の朝...`);
+          setTimeout(() => {
+            setGameState('report');
+            setIsTransitioning(false);
+          }, 1000);
+
+        }, 1500); 
+      };
+
+      const checkEnding = (finalMoney, advs) => {
+        const aliveAdvs = advs.filter(a => !a.isDead);
+        const avgTrust = aliveAdvs.length > 0 ? aliveAdvs.reduce((sum, a) => sum + a.trust, 0) / aliveAdvs.length : 0;
+        if (finalMoney >= 500000 && avgTrust >= 80 && fame >= 500) setEndingId('true_legend');
+        else if (finalMoney >= 500000 && avgTrust < 50) setEndingId('bad_merchant');
+        else if (finalMoney < 100000 && avgTrust >= 70) setEndingId('good_friend');
+        else setEndingId('normal');
+        setGameState('ending');
+      };
+
+      // --- UIコンポーネント ---
+      const renderOpeningView = () => (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm text-white flex flex-col items-center justify-center z-50 p-6 overflow-y-auto fade-in">
+          <div className="max-w-2xl w-full text-center">
+            <h1 className="text-5xl md:text-6xl font-serif text-[#D4AF37] mb-8 tracking-widest border-b border-[#D4AF37] pb-4">Rustic Forge</h1>
+            <div className="text-base md:text-lg leading-loose text-gray-300 space-y-4 mb-12 bg-black/60 backdrop-blur-md p-8 rounded border border-[#D4AF37]/50 shadow-[0_0_15px_rgba(0,0,0,0.8)] text-left">
+              <p>ここは辺境の街。迫りくる魔物の脅威に対抗できるのは、命知らずの冒険者たちだけだ。</p>
+              <p>あなたは剣を振るうことはできない。しかし、かつて名工と呼ばれた親方から、この小さな工房を受け継いだ。</p>
+              <p>伝説によれば、100日後に「<span className="text-red-500 font-bold">破壊神</span>」が目覚め、この街を飲み込むという。</p>
+              <p>それまでに、彼らに最高の武具を提供し、街の防衛力を底上げしなければならない。</p>
+              <p>もちろん、タダでとは言わない。生き残るためには、徴税吏に納める重い税金も稼ぐ必要がある。</p>
+              <p className="text-[#D4AF37] font-bold text-center mt-8 text-xl">鉄を打ち、富を築き、街を救え。</p>
+            </div>
+            <button onClick={() => setGameState('menu')} className="bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500 font-bold px-10 py-4 rounded transition-all active:scale-95 text-xl shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+              工房の扉を開ける (Day 1)
+            </button>
+          </div>
+        </div>
+      );
+
+      const renderHeader = () => {
+        const nextTaxDay = getNextTaxDay(day);
+        const daysUntilTax = nextTaxDay ? nextTaxDay - day : null;
+        
+        return (
+          <div className="flex-shrink-0 flex justify-between items-center p-3 bg-glass border-b-4 border-[#D4AF37] relative z-20">
+            <div className="flex items-center gap-6">
+              <div className="text-xl md:text-2xl font-serif tracking-wider text-[#D4AF37]">Rustic Forge</div>
+              <div className="hidden md:flex flex-col">
+                <div className="text-xs text-gray-300">職人Lv <span className="text-base font-bold text-white">{craftLevel}</span></div>
+                <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden mt-1 border border-gray-600">
+                  <div className="h-full bg-blue-400 transition-all duration-500" style={{ width: `${Math.min(100, (craftExp / getNextExp(craftLevel)) * 100)}%` }}></div>
+                </div>
+              </div>
+            </div>
+            <div className="flex space-x-4 md:space-x-6 text-sm md:text-base font-sans items-center">
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] text-[#D4AF37]">名声</span>
+                <span className="font-bold text-white">⭐ {fame}</span>
+              </div>
+              <div className="bg-red-900/50 px-2 py-1 rounded border border-red-500/50 flex flex-col items-end hidden md:flex">
+                <span className="text-[10px] text-red-200">次回納税{daysUntilTax !== null ? `(あと${daysUntilTax === 0 ? '本日' : `${daysUntilTax}日`})` : '(なし)'}</span>
+                <span className="font-bold text-red-100">{nextTaxDay ? getTaxAmount(nextTaxDay) : 0} G</span>
+              </div>
+              <div>Day: <span className="font-bold text-lg md:text-xl">{day}</span></div>
+              <div>資金: <span className="font-bold text-lg md:text-xl text-[#D4AF37]">{money} G</span></div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderSidebar = () => (
+        <div className="w-16 md:w-64 flex-shrink-0 bg-glass p-2 md:p-4 flex flex-col border-r-2 border-[#D4AF37] overflow-y-auto z-10">
+          <h3 className="hidden md:block text-xl font-serif text-[#D4AF37] mb-4 border-b border-[#D4AF37] pb-2">メニュー</h3>
+          <button onClick={() => setGameState('menu')} className={`text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'menu' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><span className="hidden md:inline">状況確認</span><span className="md:hidden text-xl">📊</span></button>
+          <button onClick={() => setGameState('craft')} className={`text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'craft' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><span className="hidden md:inline">工房 (製作)</span><span className="md:hidden text-xl">🔨</span></button>
+          <button onClick={() => setGameState('shop')} className={`text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'shop' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><span className="hidden md:inline">店舗 (販売)</span><span className="md:hidden text-xl">💰</span></button>
+          <button onClick={() => setGameState('dealer')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'dealer' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconDealer /><span className="hidden md:inline">素材問屋</span></button>
+          <button onClick={() => setGameState('quest')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'quest' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconQuest /><span className="hidden md:inline">ギルド</span></button>
+          <button onClick={() => setGameState('upgrade')} className={`text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'upgrade' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><span className="hidden md:inline">設備投資</span><span className="md:hidden text-xl">⚙️</span></button>
+          <button onClick={() => setGameState('achievements')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'achievements' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconAchievement /><span className="hidden md:inline">実績</span>{achievements.some(a => a.unlocked && !a.claimed) && <span className="w-2 h-2 bg-red-500 rounded-full ml-1 animate-pulse"></span>}</button>
+          <button onClick={() => setGameState('log')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'log' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconLog /><span className="hidden md:inline">工房日誌</span></button>
+          <button onClick={() => setGameState('help')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'help' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconHelp /><span className="hidden md:inline">遊び方</span></button>
+          
+          <div className="mt-4 hidden md:block">
+            <h4 className="font-serif text-[#D4AF37] mb-2 border-b border-[#D4AF37] pb-1">素材在庫</h4>
+            <ul className="text-sm space-y-2 pb-6">
+              {Object.values(MATERIALS).map(m => ( materials[m.id] > 0 ? ( <li key={m.id} className="flex justify-between items-center bg-black/20 px-2 py-1 rounded"><span className={m.rarity >= 4 ? 'text-yellow-400 font-bold animate-pulse' : m.rarity === 3 ? 'text-purple-300' : m.rarity === 2 ? 'text-blue-300' : 'text-gray-300'}>{m.name}</span><span className="font-bold">{materials[m.id]}</span></li> ) : null ))}
+            </ul>
+          </div>
+          <div className="mt-auto border-t border-[#D4AF37]/50 pt-4 space-y-2">
+            <div className="text-[10px] text-gray-400 text-center mb-1 hidden md:block">※進行状況は自動保存されます</div>
+            <button onClick={resetGame} className={`w-full flex justify-center items-center gap-2 p-2 rounded text-sm transition-all active:scale-95 ${confirmReset ? 'bg-red-600 text-white' : 'border border-red-900 text-red-400 hover:bg-black/50'}`}>
+               <span className="hidden md:inline">{confirmReset ? '本当に消去？' : '記録の消去'}</span>
+               <span className="md:hidden">🗑️</span>
+            </button>
+          </div>
+        </div>
+      );
+
+      const renderMainMenu = () => {
+        const currentDifficulty = getDungeonDifficulty(day);
+        const upcomingBossDays = [10, 30, 50, 70, 100];
+        const nextBossDay = upcomingBossDays.find(d => d >= day);
+        const nextBoss = nextBossDay ? BOSSES.find(b => b.day === nextBossDay) : null;
+        const aliveAdvs = adventurers.filter(a => !a.isDead);
+        const totalTownPower = aliveAdvs.reduce((sum, adv) => sum + calcTotalPowerInfo(adv).total, 0);
+
+        return (
+          <div className="p-4 md:p-6 font-sans text-[#F4EFE6] flex flex-col h-full max-w-6xl mx-auto fade-in">
+            <div className="flex justify-between items-center mb-6 border-b-2 border-[#3E2723] pb-2 flex-shrink-0">
+              <h2 className="text-3xl font-serif">状況確認</h2>
+              <button onClick={advanceDay} className="bg-green-700 text-white px-8 py-3 rounded font-bold shadow-lg hover:bg-green-800 active:scale-95 transition-all animate-pulse">1日を終了する</button>
+            </div>
+            <div className="flex flex-col md:flex-row gap-4 mb-6 flex-shrink-0">
+              <div className="bg-indigo-50 border border-indigo-200 p-4 rounded flex justify-between items-center shadow-sm flex-1">
+                 <div><h4 className="font-bold text-indigo-900 mb-1">通常ダンジョン</h4><p className="text-sm text-indigo-800">日数が経過するごとに危険度が増加します。</p></div>
+                 <div className="text-center bg-glass-panel p-2 rounded border border-indigo-100 shadow-inner ml-4"><div className="text-xs text-gray-400">推奨戦闘力</div><div className="text-2xl font-bold text-indigo-600">{currentDifficulty}</div></div>
+              </div>
+              
+              {nextBoss && (
+                <div className="bg-red-50 border border-red-300 p-4 rounded flex justify-between items-center shadow-sm flex-1">
+                   <div>
+                     <h4 className="font-bold text-red-900 mb-1">🔥 ボス襲来 (Day {nextBoss.day})</h4>
+                     <p className="text-xs text-red-800">街の総力戦です。現在の街の戦力: <span className="font-bold">{totalTownPower}</span></p>
+                   </div>
+                   <div className="text-center bg-glass-panel p-2 rounded border border-red-200 shadow-inner ml-4"><div className="text-xs text-gray-400">ボス戦闘力</div><div className="text-2xl font-bold text-red-600">{nextBoss.power}</div></div>
+                </div>
+              )}
+            </div>
+            <div className="bg-glass-panel rounded shadow-md border border-[#3E2723]/20 flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="p-4 bg-black/60 border-b border-[#D4AF37]/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <h3 className="text-xl font-bold flex flex-wrap items-center gap-2">
+                  <span>冒険者リスト (計: {adventurers.length}人)</span>
+                  <span className="text-sm font-normal text-gray-400">名前クリックで詳細</span>
+                </h3>
+                <label className="flex items-center cursor-pointer text-sm font-bold text-gray-200 bg-black/60 px-3 py-1 rounded hover:bg-gray-300 transition-colors">
+                  <input type="checkbox" className="mr-2 accent-[#3E2723]" checked={showDeadAdvs} onChange={(e) => setShowDeadAdvs(e.target.checked)} />
+                  死亡した冒険者を表示
+                </label>
+              </div>
+              <div className="overflow-y-auto p-4 md:p-6 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {adventurers.filter(a => showDeadAdvs || !a.isDead).map(a => {
+                     const pwrInfo = calcTotalPowerInfo(a);
+                     const powerColor = pwrInfo.total >= currentDifficulty - (upgrades.shopLevel * 5) ? 'text-green-600' : 'text-red-500';
+                     const isPromoted = a.class !== a.baseClass;
+                     return (
+                       <div key={a.id} className={`p-4 border rounded shadow-sm relative ${a.isDead ? 'opacity-60 bg-red-50 border-red-200' : isPromoted ? 'bg-yellow-50/50 border-yellow-300' : 'bg-glass-panel hover:border-[#D4AF37] transition-colors'}`}>
+                         {pwrInfo.bonusInfo.activeSeries && !a.isDead && ( <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] px-2 py-1 rounded-bl rounded-tr font-bold shadow-sm">✨{SERIES_NAMES[pwrInfo.bonusInfo.activeSeries]} {pwrInfo.bonusInfo.count}セット</div> )}
+                         {a.isDead && <div className="absolute -top-3 -right-3 text-3xl"><IconSkull /></div>}
+                         <div className="flex justify-between font-bold mb-2 border-b pb-2 pt-2">
+                           <span className={`cursor-pointer hover:underline ${a.isDead ? 'text-red-800 line-through' : 'text-lg'}`} onClick={() => setSelectedAdvInfo(a)}>{a.name} <span className={`text-sm font-normal ${isPromoted ? 'text-yellow-700 font-bold' : 'text-gray-400'}`}>({a.class})</span></span>
+                           <span className="text-gray-300 text-sm">好感度: {a.trust}</span>
+                         </div>
+                         <div className="text-sm text-gray-300 flex justify-between items-center mb-3">
+                           <span>戦闘力: <span className={`font-bold text-lg ml-1 ${powerColor}`}>{pwrInfo.total}</span></span>
+                           <span>予算: <span className="font-bold text-green-700">{Math.floor(a.money * (1 + (upgrades.haggleLevel * 0.1)) * (1 + (a.trust / 100)))}G</span></span>
+                         </div>
+                         <div className="grid grid-cols-3 gap-1 text-[10px] text-center">
+                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.weapon?.durability <= 0 ? 'text-red-500 line-through' : ''}`}>{a.equips.weapon?.name || '-'}</div>
+                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.armor?.durability <= 0 ? 'text-red-500 line-through' : ''}`}>{a.equips.armor?.name || '-'}</div>
+                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.shield?.durability <= 0 ? 'text-red-500 line-through' : ''}`}>{a.equips.shield?.name || '-'}</div>
+                         </div>
+                       </div>
+                     );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderCraftingView = () => {
+        const filteredRecipes = RECIPES.filter(r => 
+          (craftFilter === 'all' || r.type === craftFilter) &&
+          (craftWeightFilter === 'all' || r.weight === craftWeightFilter)
+        );
+
+        return (
+          <div className="p-4 md:p-6 font-sans text-[#F4EFE6] max-w-6xl mx-auto fade-in flex flex-col h-full">
+            <div className="flex justify-between items-end mb-6 border-b-2 border-[#3E2723] pb-2 flex-shrink-0">
+              <h2 className="text-3xl font-serif">工房</h2>
+              <div className="text-sm bg-blue-50 text-blue-800 px-3 py-1 rounded border border-blue-200">次のレベルまで: {getNextExp(craftLevel) - craftExp} EXP</div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2 mb-4 flex-shrink-0">
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setCraftFilter('all')} className={`px-4 py-1 border rounded font-bold text-sm ${craftFilter === 'all' ? 'bg-[#D4AF37] text-dark font-bold' : 'bg-glass-panel text-gray-300'}`}>すべて</button>
+                <button onClick={() => setCraftFilter('weapon')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'weapon' ? 'bg-[#D4AF37] text-dark font-bold' : 'bg-glass-panel text-gray-300'}`}><IconSword />武器</button>
+                <button onClick={() => setCraftFilter('armor')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'armor' ? 'bg-[#D4AF37] text-dark font-bold' : 'bg-glass-panel text-gray-300'}`}><IconArmor />防具</button>
+                <button onClick={() => setCraftFilter('shield')} className={`px-4 py-1 border rounded font-bold text-sm flex items-center gap-1 ${craftFilter === 'shield' ? 'bg-[#D4AF37] text-dark font-bold' : 'bg-glass-panel text-gray-300'}`}><IconShield />盾/飾</button>
+              </div>
+              <div className="flex flex-wrap gap-2 sm:ml-4">
+                <button onClick={() => setCraftWeightFilter('all')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-black/50 text-gray-300'}`}>全重量</button>
+                <button onClick={() => setCraftWeightFilter('heavy')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'heavy' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800'}`}>重量級</button>
+                <button onClick={() => setCraftWeightFilter('medium')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'medium' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-800'}`}>中量級</button>
+                <button onClick={() => setCraftWeightFilter('light')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'light' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-800'}`}>軽量級</button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pb-12 flex-1">
+              {filteredRecipes.map(recipe => {
+                const isUnlocked = craftLevel >= recipe.reqLevel;
+                const canCraft = isUnlocked && Object.entries(recipe.req).every(([matId, amt]) => (materials[matId] || 0) >= amt);
+                return (
+                  <div key={recipe.id} className={`relative bg-glass-panel p-4 rounded shadow-md border flex flex-col justify-between ${isUnlocked ? 'border-[#3E2723]/40' : 'border-gray-300 bg-black/50'}`}>
+                    {!isUnlocked && ( <div className="absolute inset-0 bg-gray-900/60 flex items-center justify-center rounded z-10 backdrop-blur-[1px]"><div className="bg-glass-panel/90 px-4 py-2 rounded shadow-lg text-[#E0D0B0] font-bold text-center"><div className="text-xl mb-1">🔒</div>職人Lv.{recipe.reqLevel} で解放</div></div> )}
+                    <div className={!isUnlocked ? 'opacity-40 grayscale blur-[1px]' : ''}>
+                      <h3 className="text-lg font-bold flex items-center mb-2 text-[#E0D0B0]">
+                        {recipe.type === 'weapon' && <IconSword />}{recipe.type === 'armor' && <IconArmor />}{recipe.type === 'shield' && <IconShield />}
+                        <span className="ml-2">{recipe.name}</span>
+                      </h3>
+                      <div className="flex justify-between items-center mb-2 text-xs">
+                        <span className={`px-2 py-0.5 rounded font-bold ${recipe.weight === 'heavy' ? 'bg-orange-100 text-orange-800' : recipe.weight === 'medium' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{WEIGHT_LABELS[recipe.weight]}</span>
+                        <span className="text-gray-400 font-semibold border-b border-gray-300">{SERIES_NAMES[recipe.series]} シリーズ</span>
+                      </div>
+                      <div className="text-xs text-gray-300 mb-3 flex justify-between bg-black/40 p-1.5 rounded">
+                        <span>威力: <span className="font-bold text-[#F4EFE6]">{recipe.basePower}</span></span><span>価値: <span className="font-bold text-[#F4EFE6]">{recipe.baseValue}G</span></span>
+                      </div>
+                      <div className="mb-4 flex flex-wrap gap-1">
+                        {Object.entries(recipe.req).map(([matId, amt]) => (
+                          <span key={matId} className={`text-[10px] px-2 py-1 rounded border ${!isUnlocked || materials[matId] >= amt ? 'bg-glass-panel border-gray-300 text-gray-200' : 'bg-red-50 border-red-200 text-red-800'}`}>{MATERIALS[matId].name} x{amt}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <button onClick={() => handleCraft(recipe)} disabled={!canCraft} className={`mt-2 w-full py-2 rounded text-sm font-bold transition-all shadow-sm ${canCraft ? 'bg-[#D4AF37] text-dark font-bold hover:bg-[#2c1b18] active:scale-95' : 'bg-gray-300 text-gray-400 cursor-not-allowed'} ${!isUnlocked ? 'invisible' : ''}`}>{canCraft ? '製作する' : '素材不足'}</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      const renderShopView = () => {
+        const aliveAdvs = adventurers.filter(a => !a.isDead);
+        let previewFame = shopSelectedItem ? Math.max(1, Math.floor(shopSelectedItem.baseValue / 40) + (shopSelectedItem.quality === 'レア' ? 2 : shopSelectedItem.quality === 'エピック' ? 6 : 0) + (shopSelectedItem.enchant ? 4 : 0)) : 0;
+        const filteredInv = inventory.filter(i => 
+          (shopFilter === 'all' || i.type === shopFilter) &&
+          (shopWeightFilter === 'all' || i.weight === shopWeightFilter)
+        );
+
+        return (
+          <div className="p-4 md:p-6 font-sans text-[#F4EFE6] h-full flex flex-col max-w-6xl mx-auto fade-in">
+            <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex-shrink-0">店舗・市場</h2>
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 min-h-0 pb-6">
+              
+              <div className="lg:w-1/3 flex-1 lg:flex-none flex flex-col bg-glass-panel rounded shadow-md border border-[#3E2723]/20 overflow-hidden min-h-0">
+                <div className="p-3 border-b bg-black/40 flex flex-col gap-2">
+                  <h3 className="text-lg font-bold">在庫一覧</h3>
+                  <div className="flex flex-wrap gap-1">
+                    <button onClick={() => setShopFilter('all')} className={`px-2 py-1 text-xs border rounded font-bold ${shopFilter === 'all' ? 'bg-[#3E2723] text-white' : 'bg-glass-panel text-gray-200'}`}>全種</button>
+                    <button onClick={() => setShopFilter('weapon')} className={`px-2 py-1 text-xs border rounded font-bold ${shopFilter === 'weapon' ? 'bg-[#3E2723] text-white' : 'bg-glass-panel text-gray-200'}`}>武器</button>
+                    <button onClick={() => setShopFilter('armor')} className={`px-2 py-1 text-xs border rounded font-bold ${shopFilter === 'armor' ? 'bg-[#3E2723] text-white' : 'bg-glass-panel text-gray-200'}`}>防具</button>
+                    <button onClick={() => setShopFilter('shield')} className={`px-2 py-1 text-xs border rounded font-bold ${shopFilter === 'shield' ? 'bg-[#3E2723] text-white' : 'bg-glass-panel text-gray-200'}`}>盾/飾</button>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <button onClick={() => setShopWeightFilter('all')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-black/60 text-gray-200'}`}>全重量</button>
+                    <button onClick={() => setShopWeightFilter('heavy')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'heavy' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800'}`}>重</button>
+                    <button onClick={() => setShopWeightFilter('medium')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'medium' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-800'}`}>中</button>
+                    <button onClick={() => setShopWeightFilter('light')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'light' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-800'}`}>軽</button>
+                  </div>
+                </div>
+                <div className="overflow-y-auto p-3 space-y-2 flex-1">
+                  {filteredInv.length === 0 ? <p className="text-gray-400 text-center mt-10 text-sm">該当の在庫がありません。</p> :
+                    [...filteredInv].reverse().map(item => (
+                      <div key={item.uid} onClick={() => setShopSelectedItem(item)} className={`p-2 rounded cursor-pointer border transition-colors ${shopSelectedItem?.uid === item.uid ? 'border-[#D4AF37] bg-[#F4EFE6] shadow-sm' : 'border-gray-200 hover:bg-black/40'}`}>
+                        <div className="flex justify-between font-bold mb-1"><span className={`text-sm truncate ${item.enchant ? 'text-purple-700' : item.quality === 'エピック' ? 'text-orange-600' : ''}`}>{item.name}</span></div>
+                        <div className="text-xs text-gray-300 flex justify-between items-center mb-1"><span>威力 <span className="font-bold">{item.power}</span></span><span>{item.baseValue}G</span></div>
+                        <div className="text-[10px] flex gap-1">
+                          <span className="bg-black/60 px-1 rounded border text-gray-200">{CATEGORY_NAMES[item.category] || '-'}</span>
+                          <span className={item.weight === 'heavy' ? 'text-orange-600' : item.weight === 'medium' ? 'text-blue-600' : 'text-green-600'}>{WEIGHT_LABELS[item.weight]}</span>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+
+              <div className="lg:w-2/3 flex-1 lg:flex-none flex flex-col bg-glass-panel rounded shadow-md border border-[#3E2723]/20 overflow-hidden min-h-0">
+                <h3 className="text-xl p-4 font-bold bg-black/40 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <span>接客・市場への売却</span>
+                  {shopSelectedItem && <button onClick={() => handleMarketSell(shopSelectedItem)} className="text-sm bg-indigo-600 text-white px-4 py-1.5 rounded hover:bg-indigo-700 shadow flex items-center gap-2 active:scale-95 transition-all"><span className="font-bold">市場に卸す</span> <span className="text-indigo-200">({Math.floor(shopSelectedItem.baseValue * 0.8)}G / ⭐+{previewFame})</span></button>}
+                </h3>
+                <div className="overflow-y-auto p-4 space-y-4 flex-1 bg-black/40/50">
+                  {aliveAdvs.map(adv => {
+                    const optimalWeight = CLASS_DATA[adv.class].weight;
+                    const isOptimal = shopSelectedItem ? shopSelectedItem.weight === optimalWeight : true;
+                    const isFavored = shopSelectedItem ? CLASS_DATA[adv.class].fav.includes(shopSelectedItem.category) : false;
+                    const needsRepair = ['weapon', 'armor', 'shield'].some(slot => adv.equips[slot] && adv.equips[slot].durability < adv.equips[slot].maxDurability);
+                    const effMoney = Math.floor(adv.money * (1 + (upgrades.haggleLevel * 0.1)) * (1 + (adv.trust / 100)));
+
+                    return (
+                      <div key={adv.id} className={`p-4 border rounded ${shopSelectedItem ? 'bg-glass-panel shadow-sm' : 'bg-black/40 opacity-90'} ${adv.class !== adv.baseClass ? 'border-yellow-400' : 'border-gray-200'}`}>
+                        <div className="flex items-start justify-between mb-3 pb-2 relative">
+                          <div className="flex items-center cursor-pointer hover:bg-black/50 p-1 -ml-1 rounded transition-colors" onClick={() => setSelectedAdvInfo(adv)}>
+                            <div className={`w-10 h-10 ${adv.class !== adv.baseClass ? 'bg-yellow-600' : 'bg-[#3E2723]'} text-[#D4AF37] rounded-full flex items-center justify-center mr-3 shadow`}><IconUser /></div>
+                            <div>
+                              <div className="font-bold text-lg leading-tight hover:underline text-[#F4EFE6]">{adv.name} <span className="text-sm font-normal text-gray-300">({adv.class})</span></div>
+                              <div className="text-sm text-gray-300">適正: <span className={`font-bold ${optimalWeight === 'heavy' ? 'text-orange-600' : optimalWeight === 'medium' ? 'text-blue-600' : 'text-green-600'}`}>{WEIGHT_LABELS[optimalWeight]}</span> / 予算: <span className="font-semibold text-green-700">{effMoney}G</span></div>
+                            </div>
+                          </div>
+                          <div className="hidden sm:block absolute right-0 -top-2 bg-glass-panel border border-gray-300 p-2 rounded-lg rounded-tr-none shadow-sm text-xs text-gray-300 max-w-[150px]">
+                            {getAdvSpeech(adv)}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-2 text-xs mb-3 opacity-80">
+                          <div className="bg-black/40 border p-1 rounded text-center overflow-hidden"><div className="truncate font-semibold text-[10px] text-gray-400">{adv.equips.weapon ? adv.equips.weapon.name : '武器なし'}</div></div>
+                          <div className="bg-black/40 border p-1 rounded text-center overflow-hidden"><div className="truncate font-semibold text-[10px] text-gray-400">{adv.equips.armor ? adv.equips.armor.name : '防具なし'}</div></div>
+                          <div className="bg-black/40 border p-1 rounded text-center overflow-hidden"><div className="truncate font-semibold text-[10px] text-gray-400">{adv.equips.shield ? adv.equips.shield.name : '盾/飾なし'}</div></div>
+                        </div>
+                        
+                        {!shopSelectedItem && needsRepair && (
+                          <div className="bg-[#3E2723]/5 p-2 rounded mt-2 border border-[#3E2723]/20">
+                            <h4 className="font-bold text-xs mb-1 text-[#E0D0B0]">🛠️ 装備の修理</h4>
+                            {['weapon', 'armor', 'shield'].map(slot => {
+                              const item = adv.equips[slot];
+                              if (item && item.durability < item.maxDurability) {
+                                const repairCost = Math.max(1, Math.floor((item.maxDurability - item.durability) * (item.baseValue / 20)));
+                                return (
+                                  <div key={slot} className="flex justify-between items-center bg-glass-panel p-1.5 rounded border mb-1">
+                                    <span className="text-xs truncate mr-2">{item.name} <span className="text-red-500">({item.durability}/{item.maxDurability})</span></span>
+                                    <button onClick={() => handleRepair(adv.id, slot)} className="text-xs bg-[#D4AF37] text-[#E0D0B0] px-2 py-1 rounded font-bold hover:bg-yellow-500 active:scale-95 transition-all flex-shrink-0">修理: {repairCost}G</button>
+                                  </div>
+                                );
+                              } return null;
+                            })}
+                          </div>
+                        )}
+                        
+                        {shopSelectedItem && (
+                          <div className={`p-3 rounded mt-2 border ${isOptimal ? 'bg-[#3E2723]/5 border-[#3E2723]/20' : 'bg-red-50 border-red-200'}`}>
+                            {isFavored ? (
+                              <div className="text-center text-xs text-yellow-700 font-bold mb-2">✨ 得意装備のため、威力が30%増加します！</div>
+                            ) : !isOptimal ? (
+                              <div className="text-center text-xs text-red-600 font-bold mb-2">⚠️ 重量不適のため、威力が半減します</div>
+                            ) : null}
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-bold">提案価格: {shopPricePct}%</span><span className="font-bold text-lg text-[#E0D0B0]">{Math.floor(shopSelectedItem.baseValue * (shopPricePct/100))} G</span>
+                            </div>
+                            <input type="range" min="50" max="200" value={shopPricePct} onChange={(e) => setShopPricePct(Number(e.target.value))} className={`w-full mb-3 ${isOptimal ? 'accent-[#D4AF37]' : 'accent-red-500'}`} />
+                            <button onClick={() => handleSell(shopSelectedItem, adv.id, shopPricePct)} className={`w-full py-2 rounded font-bold transition-all shadow active:scale-95 ${isOptimal ? 'bg-[#D4AF37] text-dark font-bold hover:bg-[#2c1b18]' : 'bg-red-700 text-white hover:bg-red-800'}`}>
+                              {isOptimal ? `${adv.name} に提案する` : '構わず提案する (ペナルティあり)'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderDealerView = () => (
+        <div className="p-4 md:p-6 font-sans text-[#F4EFE6] max-w-5xl mx-auto h-full flex flex-col fade-in">
+          <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0"><IconDealer /> 素材問屋</h2>
+          <p className="mb-6 bg-glass-panel/50 p-3 rounded">商人から割高で素材を直接買い付けることができます。どうしても必要な時に活用しましょう。</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto pb-12">
+            {Object.values(MATERIALS).map(m => {
+              const buyPrice = m.basePrice * 3;
+              return (
+                <div key={m.id} className="bg-glass-panel p-4 rounded shadow border border-gray-200 flex flex-col justify-between">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className={`font-bold ${m.rarity >= 4 ? 'text-yellow-600' : m.rarity === 3 ? 'text-purple-600' : m.rarity === 2 ? 'text-blue-600' : 'text-gray-100'}`}>{m.name}</span>
+                    <span className="text-gray-400 text-sm">所持: <span className="font-bold text-[#F4EFE6]">{materials[m.id]}</span></span>
+                  </div>
+                  <div className="text-sm font-bold text-[#E0D0B0] mb-3">単価: {buyPrice} G</div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleBuyMaterial(m.id, 1, buyPrice)} disabled={money < buyPrice} className={`flex-1 py-2 rounded text-sm font-bold transition-all active:scale-95 ${money >= buyPrice ? 'bg-black/60 hover:bg-gray-300 text-gray-100' : 'bg-black/50 text-gray-400 cursor-not-allowed'}`}>1個買う</button>
+                    <button onClick={() => handleBuyMaterial(m.id, 5, buyPrice * 5)} disabled={money < buyPrice * 5} className={`flex-1 py-2 rounded text-sm font-bold transition-all active:scale-95 ${money >= buyPrice * 5 ? 'bg-[#D4AF37] text-dark font-bold hover:bg-[#2c1b18]' : 'bg-black/50 text-gray-400 cursor-not-allowed'}`}>5個買う</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+
+      const renderQuestView = () => {
+        const investCost = 1000 * guildLevel;
+        return (
+          <div className="p-4 md:p-6 font-sans text-[#F4EFE6] max-w-5xl mx-auto h-full flex flex-col fade-in">
+            <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0"><IconQuest /> ギルド (依頼・投資)</h2>
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-6 flex flex-col sm:flex-row justify-between items-center shadow-sm flex-shrink-0">
+               <div>
+                 <h4 className="font-bold text-blue-900 mb-1">ギルドへの資金援助 (現在の貢献Lv: {guildLevel})</h4>
+                 <p className="text-sm text-blue-800">資金を寄付することで、より強力な能力を持つ新人冒険者が街を訪れるようになります。</p>
+               </div>
+               <button onClick={handleGuildInvest} disabled={money < investCost} className={`mt-3 sm:mt-0 px-6 py-2 rounded font-bold shadow whitespace-nowrap transition-all active:scale-95 ${money >= investCost ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-200 text-blue-400 cursor-not-allowed'}`}>
+                 寄付する: {investCost} G
+               </button>
+            </div>
+            {vipState.isActive && vipState.stage < VIP_QUESTS.length && (
+              <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-400 p-5 rounded mb-6 shadow-md flex flex-col sm:flex-row justify-between items-center flex-shrink-0 animate-pulse">
+                 <div>
+                   <h3 className="text-xl font-bold text-yellow-800 mb-2">👑 {VIP_QUESTS[vipState.stage].client}からの特命依頼</h3>
+                   <p className="text-sm text-yellow-900 mb-2">{VIP_QUESTS[vipState.stage].desc}</p>
+                   <p className="font-bold text-red-600 text-sm">{VIP_QUESTS[vipState.stage].rewardDesc}</p>
+                 </div>
+                 <button onClick={handleVipQuestComplete} disabled={!inventory.find(i => i.recipeId === VIP_QUESTS[vipState.stage].targetRecipe && (!VIP_QUESTS[vipState.stage].reqQuality || i.quality === VIP_QUESTS[vipState.stage].reqQuality) && (!VIP_QUESTS[vipState.stage].reqEnchant || i.enchant === VIP_QUESTS[vipState.stage].reqEnchant))} className={`mt-4 sm:mt-0 px-6 py-3 rounded font-bold shadow-lg whitespace-nowrap transition-all active:scale-95 ${inventory.find(i => i.recipeId === VIP_QUESTS[vipState.stage].targetRecipe && (!VIP_QUESTS[vipState.stage].reqQuality || i.quality === VIP_QUESTS[vipState.stage].reqQuality) && (!VIP_QUESTS[vipState.stage].reqEnchant || i.enchant === VIP_QUESTS[vipState.stage].reqEnchant)) ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>
+                   品を献上する
+                 </button>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12 overflow-y-auto">
+              {quests.map(quest => <QuestCard key={quest.id} quest={quest} inventory={inventory} onAbandon={abandonQuest} onComplete={completeQuest} />)}
+            </div>
+          </div>
+        );
+      };
+
+      const renderUpgradeView = () => {
+        const forgeCost = 500 * Math.pow(2, upgrades.forgeLevel);
+        const haggleCost = 800 * Math.pow(2, upgrades.haggleLevel);
+        const shopCost = 1000 * Math.pow(2, upgrades.shopLevel);
+        return (
+          <div className="p-4 md:p-6 font-sans text-[#F4EFE6] max-w-4xl mx-auto h-full flex flex-col fade-in">
+            <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2"><IconUpgrade /> 設備投資</h2>
+            <p className="mb-6 bg-glass-panel/50 p-3 rounded">資金を使って工房や店舗を拡張し、永続的な恩恵を得ます。</p>
+            <div className="space-y-6">
+              <div className="bg-glass-panel p-6 rounded shadow-md border border-[#3E2723]/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div><h3 className="text-xl font-bold mb-1">特注のふいご (Lv.{upgrades.forgeLevel})</h3><p className="text-sm text-gray-300">製作時、より高品質なアイテムができやすくなり、エンチャント確率も上昇する。</p></div>
+                <button onClick={() => handleUpgrade('forgeLevel', forgeCost)} disabled={money < forgeCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= forgeCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {forgeCost} G</button>
+              </div>
+              <div className="bg-glass-panel p-6 rounded shadow-md border border-[#3E2723]/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div><h3 className="text-xl font-bold mb-1">交渉術の習得 (Lv.{upgrades.haggleLevel})</h3><p className="text-sm text-gray-300">冒険者の予算が見た目以上に増え、素材の買取価格を低く抑えることができる。</p></div>
+                <button onClick={() => handleUpgrade('haggleLevel', haggleCost)} disabled={money < haggleCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= haggleCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {haggleCost} G</button>
+              </div>
+              <div className="bg-glass-panel p-6 rounded shadow-md border border-[#3E2723]/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div><h3 className="text-xl font-bold mb-1">店舗改装・癒やしの空間 (Lv.{upgrades.shopLevel})</h3><p className="text-sm text-gray-300">店での休息が冒険者に活力を与え、探索時の生存率に固定ボーナス(+5%)を付与する。</p></div>
+                <button onClick={() => handleUpgrade('shopLevel', shopCost)} disabled={money < shopCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= shopCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {shopCost} G</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderAchievementsView = () => (
+        <div className="p-4 md:p-6 font-sans text-[#F4EFE6] max-w-4xl mx-auto h-full flex flex-col fade-in">
+          <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0">
+            <span className="text-2xl">🏆</span> 実績
+          </h2>
+          <p className="mb-6 bg-glass-panel/50 p-3 rounded">特定の条件を満たすと報酬が得られます。工房を発展させる目標にしましょう。</p>
+          <div className="space-y-4 overflow-y-auto pb-12">
+            {achievements.map(ach => (
+              <div key={ach.id} className={`p-4 rounded shadow border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${ach.claimed ? 'bg-black/50 border-gray-300 opacity-60' : ach.unlocked ? 'bg-yellow-50 border-yellow-400' : 'bg-glass-panel border-gray-200'}`}>
+                <div>
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    {ach.claimed ? '✅' : ach.unlocked ? '🎁' : '🔒'} {ach.name}
+                  </h3>
+                  <p className="text-sm text-gray-300">{ach.desc}</p>
+                  <p className="text-xs font-bold text-[#D4AF37] mt-1">報酬: {ach.rewardText}</p>
+                </div>
+                <button 
+                  onClick={() => claimAchievement(ach.id)}
+                  disabled={!ach.unlocked}
+                  className={`w-full md:w-auto px-4 py-2 rounded font-bold shadow-sm transition-all ${ach.claimed ? 'bg-transparent text-gray-400 shadow-none' : ach.unlocked ? 'bg-green-600 text-white hover:bg-green-700 active:scale-95 animate-pulse' : 'bg-black/60 text-gray-400 cursor-not-allowed'}`}
+                >
+                  {ach.claimed ? '受取済み' : ach.unlocked ? '報酬を受け取る' : '未達成'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+      const renderLogView = () => {
+        const filteredLogs = logs.filter(l => {
+          if (l.startsWith("=== REPORT_START ===")) return false;
+          if (logFilter === 'all') return true;
+          if (logFilter === 'important') return l.includes('【覚醒】') || l.includes('【悲劇】') || l.includes('【ボス') || l.includes('【防衛') || l.includes('【恩恵】') || l.includes('【特命】') || l.includes('王室御用達') || l.includes('【イベント】') || l.includes('【実績') || l.includes('【警告】');
+          if (logFilter === 'trade') return l.includes('【売却】') || l.includes('【買取】') || l.includes('【修理】') || l.includes('【市場卸し】') || l.includes('【仕入】') || l.includes('【ギルド納品】') || l.includes('【納税】') || l.includes('【ギルド投資】') || l.includes('【探索】') || l.includes('【新規来店】');
+          if (logFilter === 'craft') return l.includes('【製作') || l.includes('【名作誕生】') || l.includes('【神業】') || l.includes('【成長】') || l.includes('【設備投資】');
+          return true;
+        });
+
+        return (
+          <div className="p-4 md:p-6 font-sans text-[#F4EFE6] h-full flex flex-col max-w-4xl mx-auto fade-in">
+            <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0"><IconLog /> 工房日誌</h2>
+            
+            <div className="flex gap-2 mb-4 flex-shrink-0">
+              <button onClick={() => setLogFilter('all')} className={`px-4 py-1 border rounded font-bold text-sm ${logFilter === 'all' ? 'bg-[#D4AF37] text-dark font-bold' : 'bg-glass-panel text-gray-300'}`}>すべて</button>
+              <button onClick={() => setLogFilter('important')} className={`px-4 py-1 border rounded font-bold text-sm ${logFilter === 'important' ? 'bg-[#D4AF37] text-dark font-bold' : 'bg-glass-panel text-gray-300'}`}>重要</button>
+              <button onClick={() => setLogFilter('trade')} className={`px-4 py-1 border rounded font-bold text-sm ${logFilter === 'trade' ? 'bg-[#D4AF37] text-dark font-bold' : 'bg-glass-panel text-gray-300'}`}>経営・探索</button>
+              <button onClick={() => setLogFilter('craft')} className={`px-4 py-1 border rounded font-bold text-sm ${logFilter === 'craft' ? 'bg-[#D4AF37] text-dark font-bold' : 'bg-glass-panel text-gray-300'}`}>工房作業</button>
+            </div>
+
+            <div className="bg-[#3E2723] text-[#F4EFE6] rounded shadow-md border border-[#D4AF37] flex flex-col overflow-hidden flex-1 min-h-0">
+              <div className="overflow-y-auto p-4 md:p-6 space-y-2 text-sm md:text-base flex-1 font-mono">
+                {filteredLogs.map((l, i) => (
+                  <div key={i} className={`py-1 border-b border-white/10 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【警告】') || l.includes('【納税】') || l.includes('【製作失敗】') || l.includes('【交渉決裂】') ? 'text-red-400' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') || l.includes('【恩恵】') ? 'text-yellow-300 font-bold' : l.includes('✨') || l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') || l.includes('王室御用達') ? 'text-blue-300 font-bold' : l.includes('💰') || l.includes('📦') || l.includes('特別報酬') ? 'text-green-300' : 'text-gray-200'}`}>
+                    {l}
+                  </div>
+                ))}
+                <div ref={logsEndRef} />
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderHelpView = () => (
+        <div className="p-4 md:p-6 font-sans text-[#F4EFE6] max-w-4xl mx-auto h-full flex flex-col fade-in">
+          <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0">
+            <span className="text-2xl">❓</span> 遊び方・ヘルプ
+          </h2>
+          <div className="space-y-6 overflow-y-auto pb-12 pr-4">
+            
+            <section className="bg-glass-panel p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#E0D0B0] border-b pb-2 mb-3">🗡️ ゲームの目的とセーブ</h3>
+              <p className="text-sm leading-relaxed text-gray-200">
+                あなたは辺境の街の鍛冶屋です。ダンジョンに潜る冒険者たちに武具を売り、資金と名声を稼ぎましょう。<br/>
+                <span className="font-bold text-red-600">※このゲームは完全オートセーブです。</span> 行動するたびに自動で記録され、後戻りはできません。人生は一度きりです！<br/>
+                ゲームは<span className="font-bold text-[#D4AF37]">100日経過</span>でエンディングを迎えます。その時の「最終資金」「名声」「冒険者の生存率」「ボスの討伐数」などから総合評価が下されます。
+              </p>
+              <div className="mt-3 bg-red-50 p-3 rounded border border-red-200 text-sm text-red-800">
+                <span className="font-bold">⚠️ 破産とゲームオーバー</span><br/>
+                20日、40日、60日、80日目には徴税吏がやってきて多額の税金を徴収します。この時、資金がマイナスになってしまうとゲームオーバー（破産エンド）となります。計画的に資金を残しておきましょう。
+              </div>
+            </section>
+
+            <section className="bg-glass-panel p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#E0D0B0] border-b pb-2 mb-3">🔨 製作と販売のコツ</h3>
+              <div className="space-y-3">
+                <div>
+                  <h4 className="font-bold text-gray-100">1. 武具の品質とエンチャント</h4>
+                  <p className="text-sm text-gray-200">製作時、一定確率で「レア」や「エピック」といった高品質な武具ができたり、強力な「エンチャント（特殊能力）」が付与されたりします。「特注のふいご」に設備投資すると、この確率を引き上げることができます。</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-100">2. 適正重量と得意装備</h4>
+                  <p className="text-sm text-gray-200">
+                    冒険者には「<span className="font-bold text-green-700">適正重量</span>」があり、合わない装備（⚠️）を渡すと威力が半減します。逆に、その職業の「<span className="font-bold text-yellow-600">得意装備（✨）</span>」を渡すと威力が1.3倍に跳ね上がります。状況確認画面で冒険者をクリックすると、適正重量と得意な装備カテゴリを確認できます。
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-100">3. セットボーナス</h4>
+                  <p className="text-sm text-gray-200">同じシリーズ（鉄、鋼、魔力など）の武具を2つ以上装備させると、セットボーナスが発動し、総合戦闘力がさらに底上げされます。</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-glass-panel p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#E0D0B0] border-b pb-2 mb-3">🌟 名声と好感度のメリット</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
+                  <h4 className="font-bold text-indigo-900 mb-1">名声（市場への卸し）</h4>
+                  <p className="text-xs text-indigo-800">
+                    アイテムを冒険者に売らずに「市場に卸す」と名声が上がります。名声が高まると新たな冒険者が来店したり、王室から莫大な報酬がもらえる<span className="font-bold text-red-600">特命依頼（VIPクエスト）</span>が舞い込みます。
+                  </p>
+                </div>
+                <div className="bg-green-50 p-3 rounded border border-green-100">
+                  <h4 className="font-bold text-green-900 mb-1">好感度（適正価格での販売）</h4>
+                  <p className="text-xs text-green-800">
+                    良心的な価格で販売すると好感度が上がります。好感度が高いと<span className="font-bold">アイテムを買ってくれる予算枠</span>が増加し、探索から生還した際に、より珍しい素材を安い価格で店に卸してくれます。
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-glass-panel p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#E0D0B0] border-b pb-2 mb-3">📊 探索・ボス戦・覚醒</h3>
+              <div className="space-y-3">
+                <p className="text-sm leading-relaxed text-gray-200">
+                  <span className="font-bold text-[#E0D0B0]">ボスの撃破判定:</span> 10, 30, 50, 70, 100日目にボスが襲来します。街にいる生存冒険者全員の「総合戦闘力」の合計値がボスの戦闘力を上回っていれば撃破成功となります。<br/>
+                  <span className="font-bold text-[#E0D0B0]">冒険者の生存確率:</span> 個々の冒険者が通常ダンジョンから生還できる確率は、ダンジョンの推奨戦闘力と自身の戦闘力の「割合（比率）」で計算されます。
+                </p>
+                <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
+                  <h4 className="font-bold text-yellow-800 mb-1">✨ 冒険者の覚醒</h4>
+                  <p className="text-xs text-yellow-900">
+                    10日以上生き延びており、好感度が80以上、かつ総合戦闘力が100を超えている冒険者は、より強力な「上位職（パラディン、剣聖など）」に覚醒し、ベース能力が大幅に上昇します。
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-glass-panel p-5 rounded shadow-sm border border-[#3E2723]/20">
+              <h3 className="text-xl font-bold text-[#E0D0B0] border-b pb-2 mb-3">📜 ギルド依頼と設備投資</h3>
+              <div className="space-y-3">
+                <div>
+                  <h4 className="font-bold text-gray-100">ギルド依頼（クエスト）</h4>
+                  <p className="text-sm text-gray-200">指定された武具を納品することで、通常の販売よりも多くの金貨と、ボーナス素材を獲得できます。「期限」が設定されている期間限定依頼は、報酬がさらに1.5倍になります。</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-100">設備投資とギルド投資</h4>
+                  <p className="text-sm text-gray-200">
+                    資金に余裕ができたら投資を行いましょう。<br/>
+                    ・<span className="font-bold">工房/店舗の拡張:</span> 高品質な武具を作りやすくしたり、冒険者の予算や生存率を底上げします。<br/>
+                    ・<span className="font-bold">ギルドへの資金援助:</span> 新しく来店する冒険者の初期能力と初期資金が大幅にアップします。
+                  </p>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      );
+
+      const renderReportView = () => {
+        const reportStartLog = [...logs].reverse().find(l => l.startsWith("=== REPORT_START ==="));
+        let reportData = [];
+        if (reportStartLog) {
+          try { reportData = JSON.parse(reportStartLog.replace("=== REPORT_START ===", "")); } catch(e) {}
+        }
+        const yesterdayLogs = logs.filter(l => l.startsWith(`[Day ${day - 1}]`) && !l.startsWith("=== REPORT_START ==="));
+
+        return (
+          <div className="p-4 md:p-6 font-sans flex flex-col items-center justify-start h-full bg-[#F4EFE6] overflow-y-auto fade-in">
+            <div className="bg-glass-panel p-4 md:p-8 rounded shadow-xl border-2 border-[#3E2723] max-w-4xl w-full text-center mt-4">
+              <h2 className="text-2xl md:text-3xl font-serif mb-6 text-[#E0D0B0] border-b pb-4">【Day {day - 1}】 探索結果</h2>
+              
+              {bossReport ? (
+                <div className={`mb-6 p-4 border-2 rounded ${bossReport.success ? 'bg-yellow-50 border-yellow-400' : 'bg-red-50 border-red-500 animate-shake'}`}>
+                  <h3 className={`text-2xl font-bold mb-2 ${bossReport.success ? 'text-yellow-700' : 'text-red-700'}`}>
+                    {bossReport.success ? '🎉 ボス討伐成功！' : '💀 ボス防衛失敗...'}
+                  </h3>
+                  <p className="text-sm font-bold text-gray-100 mb-2">対: {bossReport.boss.name} (戦闘力:{bossReport.boss.power})</p>
+                  {bossReport.success ? (
+                    <div className="text-sm text-green-700 font-bold">特別報酬: {bossReport.money}G, {bossReport.mats}</div>
+                  ) : (
+                    <div className="text-sm text-red-600 font-bold">街に甚大な被害が出ました。冒険者たちの装備が破損し、好感度が低下しました。</div>
+                  )}
+                </div>
+              ) : (
+                <p className="mb-6 text-sm md:text-lg text-[#F4EFE6]">日が沈み、酒場に冒険者たちが戻り始めた。</p>
+              )}
+              
+              {!bossReport && reportData.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-left">
+                  {reportData.map((rd, idx) => (
+                    <div key={idx} className={`p-3 rounded border flex items-center gap-3 ${rd.isDead ? 'bg-red-50 border-red-200' : 'bg-black/40 border-gray-200'}`}>
+                      <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white ${rd.isDead ? 'bg-gray-400' : 'bg-[#3E2723]'}`}>
+                        {rd.isDead ? '✝' : <IconUser />}
+                      </div>
+                      <div>
+                        <div className={`font-bold text-sm ${rd.isDead ? 'text-gray-400 line-through' : 'text-[#E0D0B0]'}`}>{rd.name} <span className="font-normal text-xs">({rd.class})</span></div>
+                        <div className={`text-xs italic ${rd.isDead ? 'text-red-500' : 'text-gray-300'}`}>「{rd.speech}」</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="bg-black/50 p-4 rounded mb-8 text-left h-64 overflow-y-auto text-xs md:text-sm border font-mono">
+                 {yesterdayLogs.map((l, i) => (
+                   <div key={i} className={`py-1.5 border-b border-gray-200 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【納税】') ? 'text-red-600 font-bold bg-red-50' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') || l.includes('【恩恵】') ? 'text-yellow-700 font-bold bg-yellow-50' : l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') || l.includes('王室御用達') ? 'text-blue-600 font-bold bg-blue-50' : 'text-gray-200'}`}>
+                     {l}
+                   </div>
+                 ))}
+              </div>
+              <button onClick={() => setGameState('menu')} className="bg-[#D4AF37] text-dark font-bold px-6 py-4 rounded text-lg md:text-xl font-bold shadow hover:bg-[#2c1b18] transition-all active:scale-95 w-full md:w-auto">
+                工房での作業を始める (Day {day})
+              </button>
+            </div>
+          </div>
+        );
+      };
+
+      const renderEndingView = () => {
+        const endData = {
+          'true_legend': { title: "神代の鍛冶屋", desc: "莫大な富と、世界に轟く名声。あなたの打つ武具は国中の伝説となり、王族ですらあなたの作品を求めた。いつしか、この工房は「英雄を生み出す聖地」と呼ばれるようになった。" },
+          'bad_merchant': { title: "冷酷なる大商人", desc: "利益のみを追求し、巨万の富を得た。あなたの店は世界一の商会となったが、そこに冒険者との絆はない。今日も誰かが、あなたから買ったなまくらな剣を握りしめ、ダンジョンの底で息絶えている。" },
+          'good_friend': { title: "冒険者の止まり木", desc: "大金持ちにはなれなかったが、あなたの店は全ての冒険者にとっての故郷となった。彼らが酒場で語り継ぐ武勇伝の中心には、常にあなたが打った「最高の相棒」がある。" },
+          'bankrupt': { title: "無慈悲な破産", desc: "重い税金があなたの工房を押し潰した。資金が底をつき、工房は借金のカタとして没収された... 鉄を打つ音は、二度とこの街に響かない。" },
+          'normal': { title: "街の鍛冶屋", desc: "100日が経過した。良くも悪くも、あなたはごく普通の鍛冶屋として日々を過ごしている。今日もまた、炉に火を入れる日常が始まる。" }
+        };
+        const currentEnd = endData[endingId] || endData['normal'];
+        const aliveCount = adventurers.filter(a => !a.isDead).length;
+        const totalAdvs = adventurers.length;
+        const survivalRate = totalAdvs > 0 ? Math.floor((aliveCount / totalAdvs) * 100) : 0;
+        const bossKills = stats.bossDefeated || 0;
+        
+        const score = Math.floor(money / 10) + (fame * 10) + (survivalRate * 100) + (bossKills * 5000) + (guildLevel * 2000) + (stats.epicCrafted * 500);
+
+        let rank = 'C';
+        let rankColor = 'text-gray-400';
+        if (score > 100000) { rank = 'S'; rankColor = 'text-yellow-400'; }
+        else if (score > 50000) { rank = 'A'; rankColor = 'text-red-400'; }
+        else if (score > 20000) { rank = 'B'; rankColor = 'text-blue-400'; }
+
+        let contributionText = "";
+        if (bossKills === 5) contributionText = "全ての脅威を退け、街を完全に守り抜いた！街の歴史に名を残す最高の貢献。";
+        else if (bossKills >= 3) contributionText = "多くのボスを撃退し、街の被害を最小限に抑えた。街の人々から深く感謝されている。";
+        else if (bossKills >= 1) contributionText = "いくつかの脅威を退けたが、街は深い傷を負った。それでもあなたの武具は確かに命を救った。";
+        else contributionText = "次々と来る魔物の前に冒険者たちは倒れ、街は壊滅状態。あなたの武具だけが焼け跡に残された…。";
+
+        return (
+          <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-start z-50 p-6 overflow-y-auto fade-in">
+            <div className="max-w-3xl w-full text-center mt-10">
+              <h1 className="text-4xl md:text-5xl font-serif text-[#D4AF37] mb-8 tracking-widest border-b border-[#D4AF37] pb-4">
+                {endingId === 'bankrupt' ? 'GAME OVER' : '100日間経過'}
+              </h1>
+              <h2 className="text-2xl md:text-3xl mb-4 font-bold">Ending: <span className={endingId === 'bankrupt' ? 'text-red-500' : 'text-[#D4AF37]'}>{currentEnd.title}</span></h2>
+              <p className="text-base md:text-lg leading-relaxed text-gray-300 mb-8 bg-glass-panel/5 p-4 rounded">{currentEnd.desc}</p>
+              
+              {endingId !== 'bankrupt' && (
+                <div className="bg-[#3E2723] p-6 rounded-lg border border-[#D4AF37] shadow-2xl text-left mb-8">
+                  <h3 className="text-xl font-bold text-[#D4AF37] mb-4 border-b border-[#D4AF37]/50 pb-2 flex justify-between">
+                    <span>総合評価: <span className={`text-3xl ml-2 ${rankColor}`}>{rank}</span></span>
+                    <span>Score: {score.toLocaleString()}</span>
+                  </h3>
+                  <p className="text-sm text-gray-300 mb-6 italic">{contributionText}</p>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">最終資金</div>
+                      <div className={`text-lg font-bold ${money < 0 ? 'text-red-500' : 'text-white'}`}>{money.toLocaleString()} G</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">最終名声</div>
+                      <div className="text-lg font-bold text-white">⭐ {fame.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">ボス討伐数</div>
+                      <div className="text-lg font-bold text-white">{bossKills} / 5</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">ギルド貢献Lv</div>
+                      <div className="text-lg font-bold text-white">Lv. {guildLevel}</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">生存冒険者</div>
+                      <div className="text-lg font-bold text-white">{aliveCount} <span className="text-xs text-gray-400">/ {totalAdvs} ({survivalRate}%)</span></div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">総売上額</div>
+                      <div className="text-lg font-bold text-white">{stats.totalSales.toLocaleString()} G</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">エピック製作数</div>
+                      <div className="text-lg font-bold text-white">{stats.epicCrafted} 回</div>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded">
+                      <div className="text-gray-400 mb-1">武器製作総数</div>
+                      <div className="text-lg font-bold text-white">{stats.crafted} 回</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-8 flex flex-col md:flex-row justify-center gap-6 pb-12">
+                <button onClick={resetGame} className={`font-bold px-8 py-3 rounded transition-all active:scale-95 text-lg ${confirmReset ? 'bg-red-600 text-white' : 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500'}`}>
+                  {confirmReset ? '本当にリセット？' : '最初からやり直す'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderAdventurerModal = () => {
+        if (!selectedAdvInfo) return null;
+        const a = selectedAdvInfo;
+        const pwrInfo = calcTotalPowerInfo(a);
+        const optWeight = CLASS_DATA[a.class].weight;
+
+        return (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 fade-in" onClick={() => setSelectedAdvInfo(null)}>
+            <div className="bg-[#F4EFE6] rounded-xl max-w-md w-full border-4 border-[#3E2723] text-[#F4EFE6] shadow-2xl overflow-hidden pop-up" onClick={e => e.stopPropagation()}>
+              <div className="bg-[#D4AF37] text-dark font-bold p-4 flex justify-between items-center border-b-2 border-[#D4AF37]">
+                <h2 className="text-2xl font-serif font-bold flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#D4AF37] text-[#E0D0B0] rounded-full flex items-center justify-center shadow"><IconUser /></div>{a.name}
+                </h2>
+                <button onClick={() => setSelectedAdvInfo(null)} className="text-xl font-bold hover:text-white">&times;</button>
+              </div>
+              <div className="p-6">
+                <div className="flex justify-between items-end mb-3">
+                  <div><div className="text-sm text-gray-400 mb-1">Class</div><div className={`text-xl font-bold ${a.class !== a.baseClass ? 'text-yellow-600' : 'text-[#E0D0B0]'}`}>{a.class}</div></div>
+                  <div className="text-right"><div className="text-sm text-gray-400 mb-1">Survival / Trust</div><div className="text-base font-bold">{a.aliveDays} Days / {a.trust}</div></div>
+                </div>
+                <p className="text-sm italic mb-6 bg-glass-panel p-4 rounded border shadow-inner leading-relaxed text-gray-200">"{a.flavor}"</p>
+                <div className="bg-black/50 p-4 rounded border mb-6">
+                   <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-300">
+                     <span className="font-bold text-[#E0D0B0]">総合戦闘力</span><span className="text-2xl font-bold text-indigo-700">{pwrInfo.total}</span>
+                   </div>
+                   <div className="flex justify-between text-sm text-gray-300 mb-1"><span>ベース能力</span><span>{a.basePower}</span></div>
+                   <div className="flex justify-between text-sm text-gray-300 mb-1"><span>適正重量</span><span className="font-bold">{WEIGHT_LABELS[optWeight]}</span></div>
+                   
+                   <div className="mt-3 pt-3 border-t border-gray-300">
+                     <div className="text-xs text-gray-400 mb-1">得意な装備カテゴリ:</div>
+                     <div className="flex flex-wrap gap-1">
+                       {CLASS_DATA[a.class].fav.map(favCat => (
+                         <span key={favCat} className="text-[10px] bg-yellow-100 text-yellow-800 border border-yellow-300 px-1.5 py-0.5 rounded font-bold">
+                           {CATEGORY_NAMES[favCat]}
+                         </span>
+                       ))}
+                     </div>
+                   </div>
+
+                   {pwrInfo.bonusInfo.activeSeries && (
+                     <div className="flex justify-between text-xs mt-3 text-indigo-600 font-bold bg-indigo-50 p-1.5 rounded">
+                       <span>セットボーナス: {SERIES_NAMES[pwrInfo.bonusInfo.activeSeries]}</span><span>x{pwrInfo.bonusInfo.multiplier}</span>
+                     </div>
+                   )}
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-gray-400 mb-2">現在の装備</h4>
+                  <div className="space-y-2">
+                    {['weapon', 'armor', 'shield'].map(slot => {
+                      const item = a.equips[slot];
+                      const slotNames = { weapon: '武器', armor: '防具', shield: '盾/飾' };
+                      return (
+                        <div key={slot} className="flex items-center justify-between bg-glass-panel border p-2 rounded text-sm">
+                          <span className="text-gray-400 w-12">{slotNames[slot]}</span>
+                          {item ? (
+                            <>
+                              <span className="font-bold truncate flex-1 px-2">{item.name}</span>
+                              <div className="flex flex-col items-end w-16 flex-shrink-0">
+                                <span className="text-gray-300 font-bold">+{calcEquipPower(a.class, item).final}</span>
+                                <span className={`text-[9px] ${item.durability <= 0 ? 'text-red-500' : 'text-gray-400'}`}>耐: {item.durability}/{item.maxDurability}</span>
+                              </div>
+                            </>
+                          ) : ( <span className="text-gray-400 flex-1 px-2">-</span> )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      if (!isLoaded) return null;
+
+      const getBgImage = () => {
+        if (gameState === 'opening') return 'url("./assets/images/bg_opening.png")';
+        if (gameState === 'craft') return 'url("./assets/images/bg_forge.png")';
+        if (gameState === 'shop' || gameState === 'dealer') return 'url("./assets/images/bg_shop.png")';
+        return 'url("./assets/images/bg_town.png")';
+      };
+
+      return (
+        <div className="flex flex-col h-[100dvh] bg-image overflow-hidden" style={{ backgroundImage: getBgImage() }}>
+          {toast.visible && (
+            <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded shadow-lg text-white font-bold animate-toast ${toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-blue-600'}`}>
+              {toast.message}
+            </div>
+          )}
+          <DailyEventModal event={dailyEvent} onResolve={handleEventResolve} />
+          {isTransitioning && (
+            <div className="fixed inset-0 z-50 bg-black flex items-center justify-center fade-in">
+              <div className="text-white text-4xl font-serif text-center">
+                <div className="text-gray-400 mb-2 text-xl tracking-widest">{transitionText}</div>
+              </div>
+            </div>
+          )}
+
+          {gameState === 'opening' ? (
+            renderOpeningView()
+          ) : (
+            <>
+              {renderHeader()}
+              <div className="flex flex-1 overflow-hidden">
+                {gameState !== 'report' && gameState !== 'ending' && renderSidebar()}
+                <main className="flex-1 overflow-y-auto relative shadow-inner">
+                  {gameState === 'menu' && renderMainMenu()}
+                  {gameState === 'craft' && renderCraftingView()}
+                  {gameState === 'shop' && renderShopView()}
+                  {gameState === 'dealer' && renderDealerView()}
+                  {gameState === 'quest' && renderQuestView()}
+                  {gameState === 'upgrade' && renderUpgradeView()}
+                  {gameState === 'achievements' && renderAchievementsView()}
+                  {gameState === 'log' && renderLogView()}
+                  {gameState === 'report' && renderReportView()}
+                  {gameState === 'help' && renderHelpView()}
+                  {gameState === 'ending' && renderEndingView()}
+                </main>
+              </div>
+              {renderAdventurerModal()}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
