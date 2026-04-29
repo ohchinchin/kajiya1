@@ -502,17 +502,17 @@
       }
 
       return (
-        <div className={`p-5 rounded shadow-md border flex flex-col justify-between ${quest.type === 'limited' ? 'bg-red-50 border-red-300' : 'bg-glass-panel border-[#3E2723]/30'}`}>
+        <div className={`p-5 rounded shadow-md border flex flex-col justify-between ${quest.type === 'limited' ? 'bg-red-900/30 border-red-300' : 'bg-glass-panel border-[#3E2723]/30'}`}>
           <div>
             <h3 className="text-lg font-bold mb-3 border-b pb-2 text-[#E0D0B0]">
-              {quest.type === 'limited' && <span className="text-red-600 mr-2 text-sm">【期限:Day{quest.deadline}】</span>}
-              {!quest.type || quest.type === 'permanent' ? <span className="text-blue-600 mr-2 text-sm">【常設】</span> : null}
+              {quest.type === 'limited' && <span className="text-red-400 mr-2 text-sm">【期限:Day{quest.deadline}】</span>}
+              {!quest.type || quest.type === 'permanent' ? <span className="text-blue-400 mr-2 text-sm">【常設】</span> : null}
               {quest.targetName}の納品
             </h3>
             <div className="bg-black/40 p-3 rounded mb-4 text-sm">
               <div className="text-gray-400 mb-1">報酬:</div>
-              <div className="font-bold text-green-700 text-lg mb-1">{quest.rewardMoney} G</div>
-              <div className="font-semibold text-blue-800 flex items-center gap-1">
+              <div className="font-bold text-green-400 text-lg mb-1">{quest.rewardMoney} G</div>
+              <div className="font-semibold text-blue-400 flex items-center gap-1">
                 + {MATERIALS[quest.rewardMat].name} x{quest.rewardMatAmt}
               </div>
             </div>
@@ -524,7 +524,7 @@
                 </select>
               </div>
             ) : (
-              <p className="text-sm text-red-600 mb-4 bg-red-50 p-2 rounded">在庫に該当アイテムがありません。</p>
+              <p className="text-sm text-red-400 mb-4 bg-red-900/30 p-2 rounded">在庫に該当アイテムがありません。</p>
             )}
           </div>
           <div className="flex gap-2 mt-auto">
@@ -1328,12 +1328,12 @@
             <div className="text-base md:text-lg leading-loose text-gray-300 space-y-4 mb-12 bg-black/60 backdrop-blur-md p-8 rounded border border-[#D4AF37]/50 shadow-[0_0_15px_rgba(0,0,0,0.8)] text-left">
               <p>ここは辺境の街。迫りくる魔物の脅威に対抗できるのは、命知らずの冒険者たちだけだ。</p>
               <p>あなたは剣を振るうことはできない。しかし、かつて名工と呼ばれた親方から、この小さな工房を受け継いだ。</p>
-              <p>伝説によれば、100日後に「<span className="text-red-500 font-bold">破壊神</span>」が目覚め、この街を飲み込むという。</p>
+              <p>伝説によれば、100日後に「<span className="text-red-400 font-bold">破壊神</span>」が目覚め、この街を飲み込むという。</p>
               <p>それまでに、彼らに最高の武具を提供し、街の防衛力を底上げしなければならない。</p>
               <p>もちろん、タダでとは言わない。生き残るためには、徴税吏に納める重い税金も稼ぐ必要がある。</p>
               <p className="text-[#D4AF37] font-bold text-center mt-8 text-xl">鉄を打ち、富を築き、街を救え。</p>
             </div>
-            <button onClick={() => setGameState('menu')} className="bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500 font-bold px-10 py-4 rounded transition-all active:scale-95 text-xl shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+            <button onClick={() => setGameState('menu')} className="bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-900/300 font-bold px-10 py-4 rounded transition-all active:scale-95 text-xl shadow-[0_0_20px_rgba(212,175,55,0.4)]">
               工房の扉を開ける (Day 1)
             </button>
           </div>
@@ -1380,7 +1380,7 @@
           <button onClick={() => setGameState('dealer')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'dealer' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconDealer /><span className="hidden md:inline">素材問屋</span></button>
           <button onClick={() => setGameState('quest')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'quest' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconQuest /><span className="hidden md:inline">ギルド</span></button>
           <button onClick={() => setGameState('upgrade')} className={`text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'upgrade' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><span className="hidden md:inline">設備投資</span><span className="md:hidden text-xl">⚙️</span></button>
-          <button onClick={() => setGameState('achievements')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'achievements' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconAchievement /><span className="hidden md:inline">実績</span>{achievements.some(a => a.unlocked && !a.claimed) && <span className="w-2 h-2 bg-red-500 rounded-full ml-1 animate-pulse"></span>}</button>
+          <button onClick={() => setGameState('achievements')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'achievements' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconAchievement /><span className="hidden md:inline">実績</span>{achievements.some(a => a.unlocked && !a.claimed) && <span className="w-2 h-2 bg-red-900/300 rounded-full ml-1 animate-pulse"></span>}</button>
           <button onClick={() => setGameState('log')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'log' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconLog /><span className="hidden md:inline">工房日誌</span></button>
           <button onClick={() => setGameState('help')} className={`flex justify-center md:justify-start items-center gap-2 text-left p-3 mb-2 rounded transition-all active:scale-95 ${gameState === 'help' ? 'bg-[#D4AF37] text-[#E0D0B0] font-bold' : 'hover:bg-glass-panel/10'}`}><IconHelp /><span className="hidden md:inline">遊び方</span></button>
           
@@ -1416,17 +1416,17 @@
             </div>
             <div className="flex flex-col md:flex-row gap-4 mb-6 flex-shrink-0">
               <div className="bg-indigo-50 border border-indigo-200 p-4 rounded flex justify-between items-center shadow-sm flex-1">
-                 <div><h4 className="font-bold text-indigo-900 mb-1">通常ダンジョン</h4><p className="text-sm text-indigo-800">日数が経過するごとに危険度が増加します。</p></div>
-                 <div className="text-center bg-glass-panel p-2 rounded border border-indigo-100 shadow-inner ml-4"><div className="text-xs text-gray-400">推奨戦闘力</div><div className="text-2xl font-bold text-indigo-600">{currentDifficulty}</div></div>
+                 <div><h4 className="font-bold text-indigo-300 mb-1">通常ダンジョン</h4><p className="text-sm text-indigo-300">日数が経過するごとに危険度が増加します。</p></div>
+                 <div className="text-center bg-glass-panel p-2 rounded border border-indigo-500/30 shadow-inner ml-4"><div className="text-xs text-gray-400">推奨戦闘力</div><div className="text-2xl font-bold text-indigo-300">{currentDifficulty}</div></div>
               </div>
               
               {nextBoss && (
-                <div className="bg-red-50 border border-red-300 p-4 rounded flex justify-between items-center shadow-sm flex-1">
+                <div className="bg-red-900/30 border border-red-300 p-4 rounded flex justify-between items-center shadow-sm flex-1">
                    <div>
-                     <h4 className="font-bold text-red-900 mb-1">🔥 ボス襲来 (Day {nextBoss.day})</h4>
-                     <p className="text-xs text-red-800">街の総力戦です。現在の街の戦力: <span className="font-bold">{totalTownPower}</span></p>
+                     <h4 className="font-bold text-red-400 mb-1">🔥 ボス襲来 (Day {nextBoss.day})</h4>
+                     <p className="text-xs text-red-400">街の総力戦です。現在の街の戦力: <span className="font-bold">{totalTownPower}</span></p>
                    </div>
-                   <div className="text-center bg-glass-panel p-2 rounded border border-red-200 shadow-inner ml-4"><div className="text-xs text-gray-400">ボス戦闘力</div><div className="text-2xl font-bold text-red-600">{nextBoss.power}</div></div>
+                   <div className="text-center bg-glass-panel p-2 rounded border border-red-500/30 shadow-inner ml-4"><div className="text-xs text-gray-400">ボス戦闘力</div><div className="text-2xl font-bold text-red-400">{nextBoss.power}</div></div>
                 </div>
               )}
             </div>
@@ -1445,24 +1445,24 @@
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {adventurers.filter(a => showDeadAdvs || !a.isDead).map(a => {
                      const pwrInfo = calcTotalPowerInfo(a);
-                     const powerColor = pwrInfo.total >= currentDifficulty - (upgrades.shopLevel * 5) ? 'text-green-600' : 'text-red-500';
+                     const powerColor = pwrInfo.total >= currentDifficulty - (upgrades.shopLevel * 5) ? 'text-green-400' : 'text-red-400';
                      const isPromoted = a.class !== a.baseClass;
                      return (
-                       <div key={a.id} className={`p-4 border rounded shadow-sm relative ${a.isDead ? 'opacity-60 bg-red-50 border-red-200' : isPromoted ? 'bg-yellow-50/50 border-yellow-300' : 'bg-glass-panel hover:border-[#D4AF37] transition-colors'}`}>
+                       <div key={a.id} className={`p-4 border rounded shadow-sm relative ${a.isDead ? 'opacity-60 bg-red-900/30 border-red-500/30' : isPromoted ? 'bg-yellow-900/30/50 border-yellow-300' : 'bg-glass-panel hover:border-[#D4AF37] transition-colors'}`}>
                          {pwrInfo.bonusInfo.activeSeries && !a.isDead && ( <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] px-2 py-1 rounded-bl rounded-tr font-bold shadow-sm">✨{SERIES_NAMES[pwrInfo.bonusInfo.activeSeries]} {pwrInfo.bonusInfo.count}セット</div> )}
                          {a.isDead && <div className="absolute -top-3 -right-3 text-3xl"><IconSkull /></div>}
                          <div className="flex justify-between font-bold mb-2 border-b pb-2 pt-2">
-                           <span className={`cursor-pointer hover:underline ${a.isDead ? 'text-red-800 line-through' : 'text-lg'}`} onClick={() => setSelectedAdvInfo(a)}>{a.name} <span className={`text-sm font-normal ${isPromoted ? 'text-yellow-700 font-bold' : 'text-gray-400'}`}>({a.class})</span></span>
+                           <span className={`cursor-pointer hover:underline ${a.isDead ? 'text-red-400 line-through' : 'text-lg'}`} onClick={() => setSelectedAdvInfo(a)}>{a.name} <span className={`text-sm font-normal ${isPromoted ? 'text-yellow-400 font-bold' : 'text-gray-400'}`}>({a.class})</span></span>
                            <span className="text-gray-300 text-sm">好感度: {a.trust}</span>
                          </div>
                          <div className="text-sm text-gray-300 flex justify-between items-center mb-3">
                            <span>戦闘力: <span className={`font-bold text-lg ml-1 ${powerColor}`}>{pwrInfo.total}</span></span>
-                           <span>予算: <span className="font-bold text-green-700">{Math.floor(a.money * (1 + (upgrades.haggleLevel * 0.1)) * (1 + (a.trust / 100)))}G</span></span>
+                           <span>予算: <span className="font-bold text-green-400">{Math.floor(a.money * (1 + (upgrades.haggleLevel * 0.1)) * (1 + (a.trust / 100)))}G</span></span>
                          </div>
                          <div className="grid grid-cols-3 gap-1 text-[10px] text-center">
-                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.weapon?.durability <= 0 ? 'text-red-500 line-through' : ''}`}>{a.equips.weapon?.name || '-'}</div>
-                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.armor?.durability <= 0 ? 'text-red-500 line-through' : ''}`}>{a.equips.armor?.name || '-'}</div>
-                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.shield?.durability <= 0 ? 'text-red-500 line-through' : ''}`}>{a.equips.shield?.name || '-'}</div>
+                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.weapon?.durability <= 0 ? 'text-red-400 line-through' : ''}`}>{a.equips.weapon?.name || '-'}</div>
+                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.armor?.durability <= 0 ? 'text-red-400 line-through' : ''}`}>{a.equips.armor?.name || '-'}</div>
+                           <div className={`bg-black/50 p-1 rounded truncate ${a.equips.shield?.durability <= 0 ? 'text-red-400 line-through' : ''}`}>{a.equips.shield?.name || '-'}</div>
                          </div>
                        </div>
                      );
@@ -1484,7 +1484,7 @@
           <div className="p-4 md:p-6 font-sans text-[#F4EFE6] max-w-6xl mx-auto fade-in flex flex-col h-full">
             <div className="flex justify-between items-end mb-6 border-b-2 border-[#3E2723] pb-2 flex-shrink-0">
               <h2 className="text-3xl font-serif">工房</h2>
-              <div className="text-sm bg-blue-50 text-blue-800 px-3 py-1 rounded border border-blue-200">次のレベルまで: {getNextExp(craftLevel) - craftExp} EXP</div>
+              <div className="text-sm bg-blue-900/30 text-blue-400 px-3 py-1 rounded border border-blue-200">次のレベルまで: {getNextExp(craftLevel) - craftExp} EXP</div>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 mb-4 flex-shrink-0">
@@ -1496,9 +1496,9 @@
               </div>
               <div className="flex flex-wrap gap-2 sm:ml-4">
                 <button onClick={() => setCraftWeightFilter('all')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-black/50 text-gray-300'}`}>全重量</button>
-                <button onClick={() => setCraftWeightFilter('heavy')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'heavy' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800'}`}>重量級</button>
-                <button onClick={() => setCraftWeightFilter('medium')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'medium' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-800'}`}>中量級</button>
-                <button onClick={() => setCraftWeightFilter('light')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'light' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-800'}`}>軽量級</button>
+                <button onClick={() => setCraftWeightFilter('heavy')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'heavy' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-400'}`}>重量級</button>
+                <button onClick={() => setCraftWeightFilter('medium')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'medium' ? 'bg-blue-900/300 text-white' : 'bg-blue-100 text-blue-400'}`}>中量級</button>
+                <button onClick={() => setCraftWeightFilter('light')} className={`px-3 py-1 border rounded font-bold text-sm ${craftWeightFilter === 'light' ? 'bg-green-900/300 text-white' : 'bg-green-100 text-green-400'}`}>軽量級</button>
               </div>
             </div>
             
@@ -1515,7 +1515,7 @@
                         <span className="ml-2">{recipe.name}</span>
                       </h3>
                       <div className="flex justify-between items-center mb-2 text-xs">
-                        <span className={`px-2 py-0.5 rounded font-bold ${recipe.weight === 'heavy' ? 'bg-orange-100 text-orange-800' : recipe.weight === 'medium' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{WEIGHT_LABELS[recipe.weight]}</span>
+                        <span className={`px-2 py-0.5 rounded font-bold ${recipe.weight === 'heavy' ? 'bg-orange-100 text-orange-400' : recipe.weight === 'medium' ? 'bg-blue-100 text-blue-400' : 'bg-green-100 text-green-400'}`}>{WEIGHT_LABELS[recipe.weight]}</span>
                         <span className="text-gray-400 font-semibold border-b border-gray-300">{SERIES_NAMES[recipe.series]} シリーズ</span>
                       </div>
                       <div className="text-xs text-gray-300 mb-3 flex justify-between bg-black/40 p-1.5 rounded">
@@ -1523,7 +1523,7 @@
                       </div>
                       <div className="mb-4 flex flex-wrap gap-1">
                         {Object.entries(recipe.req).map(([matId, amt]) => (
-                          <span key={matId} className={`text-[10px] px-2 py-1 rounded border ${!isUnlocked || materials[matId] >= amt ? 'bg-glass-panel border-gray-300 text-gray-200' : 'bg-red-50 border-red-200 text-red-800'}`}>{MATERIALS[matId].name} x{amt}</span>
+                          <span key={matId} className={`text-[10px] px-2 py-1 rounded border ${!isUnlocked || materials[matId] >= amt ? 'bg-glass-panel border-gray-300 text-gray-200' : 'bg-red-900/30 border-red-500/30 text-red-400'}`}>{MATERIALS[matId].name} x{amt}</span>
                         ))}
                       </div>
                     </div>
@@ -1560,20 +1560,20 @@
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
                     <button onClick={() => setShopWeightFilter('all')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-black/60 text-gray-200'}`}>全重量</button>
-                    <button onClick={() => setShopWeightFilter('heavy')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'heavy' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800'}`}>重</button>
-                    <button onClick={() => setShopWeightFilter('medium')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'medium' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-800'}`}>中</button>
-                    <button onClick={() => setShopWeightFilter('light')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'light' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-800'}`}>軽</button>
+                    <button onClick={() => setShopWeightFilter('heavy')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'heavy' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-400'}`}>重</button>
+                    <button onClick={() => setShopWeightFilter('medium')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'medium' ? 'bg-blue-900/300 text-white' : 'bg-blue-100 text-blue-400'}`}>中</button>
+                    <button onClick={() => setShopWeightFilter('light')} className={`px-2 py-1 text-[10px] border rounded font-bold ${shopWeightFilter === 'light' ? 'bg-green-900/300 text-white' : 'bg-green-100 text-green-400'}`}>軽</button>
                   </div>
                 </div>
                 <div className="overflow-y-auto p-3 space-y-2 flex-1">
                   {filteredInv.length === 0 ? <p className="text-gray-400 text-center mt-10 text-sm">該当の在庫がありません。</p> :
                     [...filteredInv].reverse().map(item => (
                       <div key={item.uid} onClick={() => setShopSelectedItem(item)} className={`p-2 rounded cursor-pointer border transition-colors ${shopSelectedItem?.uid === item.uid ? 'border-[#D4AF37] bg-[#F4EFE6] shadow-sm' : 'border-gray-200 hover:bg-black/40'}`}>
-                        <div className="flex justify-between font-bold mb-1"><span className={`text-sm truncate ${item.enchant ? 'text-purple-700' : item.quality === 'エピック' ? 'text-orange-600' : ''}`}>{item.name}</span></div>
+                        <div className="flex justify-between font-bold mb-1"><span className={`text-sm truncate ${item.enchant ? 'text-purple-400' : item.quality === 'エピック' ? 'text-orange-400' : ''}`}>{item.name}</span></div>
                         <div className="text-xs text-gray-300 flex justify-between items-center mb-1"><span>威力 <span className="font-bold">{item.power}</span></span><span>{item.baseValue}G</span></div>
                         <div className="text-[10px] flex gap-1">
                           <span className="bg-black/60 px-1 rounded border text-gray-200">{CATEGORY_NAMES[item.category] || '-'}</span>
-                          <span className={item.weight === 'heavy' ? 'text-orange-600' : item.weight === 'medium' ? 'text-blue-600' : 'text-green-600'}>{WEIGHT_LABELS[item.weight]}</span>
+                          <span className={item.weight === 'heavy' ? 'text-orange-400' : item.weight === 'medium' ? 'text-blue-400' : 'text-green-400'}>{WEIGHT_LABELS[item.weight]}</span>
                         </div>
                       </div>
                     ))
@@ -1601,7 +1601,7 @@
                             <div className={`w-10 h-10 ${adv.class !== adv.baseClass ? 'bg-yellow-600' : 'bg-[#3E2723]'} text-[#D4AF37] rounded-full flex items-center justify-center mr-3 shadow`}><IconUser /></div>
                             <div>
                               <div className="font-bold text-lg leading-tight hover:underline text-[#F4EFE6]">{adv.name} <span className="text-sm font-normal text-gray-300">({adv.class})</span></div>
-                              <div className="text-sm text-gray-300">適正: <span className={`font-bold ${optimalWeight === 'heavy' ? 'text-orange-600' : optimalWeight === 'medium' ? 'text-blue-600' : 'text-green-600'}`}>{WEIGHT_LABELS[optimalWeight]}</span> / 予算: <span className="font-semibold text-green-700">{effMoney}G</span></div>
+                              <div className="text-sm text-gray-300">適正: <span className={`font-bold ${optimalWeight === 'heavy' ? 'text-orange-400' : optimalWeight === 'medium' ? 'text-blue-400' : 'text-green-400'}`}>{WEIGHT_LABELS[optimalWeight]}</span> / 予算: <span className="font-semibold text-green-400">{effMoney}G</span></div>
                             </div>
                           </div>
                           <div className="hidden sm:block absolute right-0 -top-2 bg-glass-panel border border-gray-300 p-2 rounded-lg rounded-tr-none shadow-sm text-xs text-gray-300 max-w-[150px]">
@@ -1624,8 +1624,8 @@
                                 const repairCost = Math.max(1, Math.floor((item.maxDurability - item.durability) * (item.baseValue / 20)));
                                 return (
                                   <div key={slot} className="flex justify-between items-center bg-glass-panel p-1.5 rounded border mb-1">
-                                    <span className="text-xs truncate mr-2">{item.name} <span className="text-red-500">({item.durability}/{item.maxDurability})</span></span>
-                                    <button onClick={() => handleRepair(adv.id, slot)} className="text-xs bg-[#D4AF37] text-[#E0D0B0] px-2 py-1 rounded font-bold hover:bg-yellow-500 active:scale-95 transition-all flex-shrink-0">修理: {repairCost}G</button>
+                                    <span className="text-xs truncate mr-2">{item.name} <span className="text-red-400">({item.durability}/{item.maxDurability})</span></span>
+                                    <button onClick={() => handleRepair(adv.id, slot)} className="text-xs bg-[#D4AF37] text-[#E0D0B0] px-2 py-1 rounded font-bold hover:bg-yellow-900/300 active:scale-95 transition-all flex-shrink-0">修理: {repairCost}G</button>
                                   </div>
                                 );
                               } return null;
@@ -1634,11 +1634,11 @@
                         )}
                         
                         {shopSelectedItem && (
-                          <div className={`p-3 rounded mt-2 border ${isOptimal ? 'bg-[#3E2723]/5 border-[#3E2723]/20' : 'bg-red-50 border-red-200'}`}>
+                          <div className={`p-3 rounded mt-2 border ${isOptimal ? 'bg-[#3E2723]/5 border-[#3E2723]/20' : 'bg-red-900/30 border-red-500/30'}`}>
                             {isFavored ? (
-                              <div className="text-center text-xs text-yellow-700 font-bold mb-2">✨ 得意装備のため、威力が30%増加します！</div>
+                              <div className="text-center text-xs text-yellow-400 font-bold mb-2">✨ 得意装備のため、威力が30%増加します！</div>
                             ) : !isOptimal ? (
-                              <div className="text-center text-xs text-red-600 font-bold mb-2">⚠️ 重量不適のため、威力が半減します</div>
+                              <div className="text-center text-xs text-red-400 font-bold mb-2">⚠️ 重量不適のため、威力が半減します</div>
                             ) : null}
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-bold">提案価格: {shopPricePct}%</span><span className="font-bold text-lg text-[#E0D0B0]">{Math.floor(shopSelectedItem.baseValue * (shopPricePct/100))} G</span>
@@ -1669,7 +1669,7 @@
               return (
                 <div key={m.id} className="bg-glass-panel p-4 rounded shadow border border-gray-200 flex flex-col justify-between">
                   <div className="flex justify-between items-center mb-3">
-                    <span className={`font-bold ${m.rarity >= 4 ? 'text-yellow-600' : m.rarity === 3 ? 'text-purple-600' : m.rarity === 2 ? 'text-blue-600' : 'text-gray-100'}`}>{m.name}</span>
+                    <span className={`font-bold ${m.rarity >= 4 ? 'text-yellow-400' : m.rarity === 3 ? 'text-purple-400' : m.rarity === 2 ? 'text-blue-400' : 'text-gray-100'}`}>{m.name}</span>
                     <span className="text-gray-400 text-sm">所持: <span className="font-bold text-[#F4EFE6]">{materials[m.id]}</span></span>
                   </div>
                   <div className="text-sm font-bold text-[#E0D0B0] mb-3">単価: {buyPrice} G</div>
@@ -1689,10 +1689,10 @@
         return (
           <div className="p-4 md:p-6 font-sans text-[#F4EFE6] max-w-5xl mx-auto h-full flex flex-col fade-in">
             <h2 className="text-3xl font-serif mb-6 border-b-2 border-[#3E2723] pb-2 flex items-center gap-2 flex-shrink-0"><IconQuest /> ギルド (依頼・投資)</h2>
-            <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-6 flex flex-col sm:flex-row justify-between items-center shadow-sm flex-shrink-0">
+            <div className="bg-blue-900/30 border border-blue-200 p-4 rounded mb-6 flex flex-col sm:flex-row justify-between items-center shadow-sm flex-shrink-0">
                <div>
-                 <h4 className="font-bold text-blue-900 mb-1">ギルドへの資金援助 (現在の貢献Lv: {guildLevel})</h4>
-                 <p className="text-sm text-blue-800">資金を寄付することで、より強力な能力を持つ新人冒険者が街を訪れるようになります。</p>
+                 <h4 className="font-bold text-blue-400 mb-1">ギルドへの資金援助 (現在の貢献Lv: {guildLevel})</h4>
+                 <p className="text-sm text-blue-400">資金を寄付することで、より強力な能力を持つ新人冒険者が街を訪れるようになります。</p>
                </div>
                <button onClick={handleGuildInvest} disabled={money < investCost} className={`mt-3 sm:mt-0 px-6 py-2 rounded font-bold shadow whitespace-nowrap transition-all active:scale-95 ${money >= investCost ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-200 text-blue-400 cursor-not-allowed'}`}>
                  寄付する: {investCost} G
@@ -1701,11 +1701,11 @@
             {vipState.isActive && vipState.stage < VIP_QUESTS.length && (
               <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-400 p-5 rounded mb-6 shadow-md flex flex-col sm:flex-row justify-between items-center flex-shrink-0 animate-pulse">
                  <div>
-                   <h3 className="text-xl font-bold text-yellow-800 mb-2">👑 {VIP_QUESTS[vipState.stage].client}からの特命依頼</h3>
-                   <p className="text-sm text-yellow-900 mb-2">{VIP_QUESTS[vipState.stage].desc}</p>
-                   <p className="font-bold text-red-600 text-sm">{VIP_QUESTS[vipState.stage].rewardDesc}</p>
+                   <h3 className="text-xl font-bold text-yellow-400 mb-2">👑 {VIP_QUESTS[vipState.stage].client}からの特命依頼</h3>
+                   <p className="text-sm text-yellow-400 mb-2">{VIP_QUESTS[vipState.stage].desc}</p>
+                   <p className="font-bold text-red-400 text-sm">{VIP_QUESTS[vipState.stage].rewardDesc}</p>
                  </div>
-                 <button onClick={handleVipQuestComplete} disabled={!inventory.find(i => i.recipeId === VIP_QUESTS[vipState.stage].targetRecipe && (!VIP_QUESTS[vipState.stage].reqQuality || i.quality === VIP_QUESTS[vipState.stage].reqQuality) && (!VIP_QUESTS[vipState.stage].reqEnchant || i.enchant === VIP_QUESTS[vipState.stage].reqEnchant))} className={`mt-4 sm:mt-0 px-6 py-3 rounded font-bold shadow-lg whitespace-nowrap transition-all active:scale-95 ${inventory.find(i => i.recipeId === VIP_QUESTS[vipState.stage].targetRecipe && (!VIP_QUESTS[vipState.stage].reqQuality || i.quality === VIP_QUESTS[vipState.stage].reqQuality) && (!VIP_QUESTS[vipState.stage].reqEnchant || i.enchant === VIP_QUESTS[vipState.stage].reqEnchant)) ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>
+                 <button onClick={handleVipQuestComplete} disabled={!inventory.find(i => i.recipeId === VIP_QUESTS[vipState.stage].targetRecipe && (!VIP_QUESTS[vipState.stage].reqQuality || i.quality === VIP_QUESTS[vipState.stage].reqQuality) && (!VIP_QUESTS[vipState.stage].reqEnchant || i.enchant === VIP_QUESTS[vipState.stage].reqEnchant))} className={`mt-4 sm:mt-0 px-6 py-3 rounded font-bold shadow-lg whitespace-nowrap transition-all active:scale-95 ${inventory.find(i => i.recipeId === VIP_QUESTS[vipState.stage].targetRecipe && (!VIP_QUESTS[vipState.stage].reqQuality || i.quality === VIP_QUESTS[vipState.stage].reqQuality) && (!VIP_QUESTS[vipState.stage].reqEnchant || i.enchant === VIP_QUESTS[vipState.stage].reqEnchant)) ? 'bg-yellow-900/300 text-white hover:bg-yellow-600' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>
                    品を献上する
                  </button>
               </div>
@@ -1728,15 +1728,15 @@
             <div className="space-y-6">
               <div className="bg-glass-panel p-6 rounded shadow-md border border-[#3E2723]/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div><h3 className="text-xl font-bold mb-1">特注のふいご (Lv.{upgrades.forgeLevel})</h3><p className="text-sm text-gray-300">製作時、より高品質なアイテムができやすくなり、エンチャント確率も上昇する。</p></div>
-                <button onClick={() => handleUpgrade('forgeLevel', forgeCost)} disabled={money < forgeCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= forgeCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {forgeCost} G</button>
+                <button onClick={() => handleUpgrade('forgeLevel', forgeCost)} disabled={money < forgeCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= forgeCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-900/300' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {forgeCost} G</button>
               </div>
               <div className="bg-glass-panel p-6 rounded shadow-md border border-[#3E2723]/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div><h3 className="text-xl font-bold mb-1">交渉術の習得 (Lv.{upgrades.haggleLevel})</h3><p className="text-sm text-gray-300">冒険者の予算が見た目以上に増え、素材の買取価格を低く抑えることができる。</p></div>
-                <button onClick={() => handleUpgrade('haggleLevel', haggleCost)} disabled={money < haggleCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= haggleCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {haggleCost} G</button>
+                <button onClick={() => handleUpgrade('haggleLevel', haggleCost)} disabled={money < haggleCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= haggleCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-900/300' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {haggleCost} G</button>
               </div>
               <div className="bg-glass-panel p-6 rounded shadow-md border border-[#3E2723]/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div><h3 className="text-xl font-bold mb-1">店舗改装・癒やしの空間 (Lv.{upgrades.shopLevel})</h3><p className="text-sm text-gray-300">店での休息が冒険者に活力を与え、探索時の生存率に固定ボーナス(+5%)を付与する。</p></div>
-                <button onClick={() => handleUpgrade('shopLevel', shopCost)} disabled={money < shopCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= shopCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {shopCost} G</button>
+                <button onClick={() => handleUpgrade('shopLevel', shopCost)} disabled={money < shopCost} className={`w-full md:w-auto px-6 py-3 rounded font-bold shadow whitespace-nowrap active:scale-95 transition-all ${money >= shopCost ? 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-900/300' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}>投資: {shopCost} G</button>
               </div>
             </div>
           </div>
@@ -1751,7 +1751,7 @@
           <p className="mb-6 bg-glass-panel/50 p-3 rounded">特定の条件を満たすと報酬が得られます。工房を発展させる目標にしましょう。</p>
           <div className="space-y-4 overflow-y-auto pb-12">
             {achievements.map(ach => (
-              <div key={ach.id} className={`p-4 rounded shadow border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${ach.claimed ? 'bg-black/50 border-gray-300 opacity-60' : ach.unlocked ? 'bg-yellow-50 border-yellow-400' : 'bg-glass-panel border-gray-200'}`}>
+              <div key={ach.id} className={`p-4 rounded shadow border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${ach.claimed ? 'bg-black/50 border-gray-300 opacity-60' : ach.unlocked ? 'bg-yellow-900/30 border-yellow-400' : 'bg-glass-panel border-gray-200'}`}>
                 <div>
                   <h3 className="text-lg font-bold flex items-center gap-2">
                     {ach.claimed ? '✅' : ach.unlocked ? '🎁' : '🔒'} {ach.name}
@@ -1818,10 +1818,10 @@
               <h3 className="text-xl font-bold text-[#E0D0B0] border-b pb-2 mb-3">🗡️ ゲームの目的とセーブ</h3>
               <p className="text-sm leading-relaxed text-gray-200">
                 あなたは辺境の街の鍛冶屋です。ダンジョンに潜る冒険者たちに武具を売り、資金と名声を稼ぎましょう。<br/>
-                <span className="font-bold text-red-600">※このゲームは完全オートセーブです。</span> 行動するたびに自動で記録され、後戻りはできません。人生は一度きりです！<br/>
+                <span className="font-bold text-red-400">※このゲームは完全オートセーブです。</span> 行動するたびに自動で記録され、後戻りはできません。人生は一度きりです！<br/>
                 ゲームは<span className="font-bold text-[#D4AF37]">100日経過</span>でエンディングを迎えます。その時の「最終資金」「名声」「冒険者の生存率」「ボスの討伐数」などから総合評価が下されます。
               </p>
-              <div className="mt-3 bg-red-50 p-3 rounded border border-red-200 text-sm text-red-800">
+              <div className="mt-3 bg-red-900/30 p-3 rounded border border-red-500/30 text-sm text-red-400">
                 <span className="font-bold">⚠️ 破産とゲームオーバー</span><br/>
                 20日、40日、60日、80日目には徴税吏がやってきて多額の税金を徴収します。この時、資金がマイナスになってしまうとゲームオーバー（破産エンド）となります。計画的に資金を残しておきましょう。
               </div>
@@ -1837,7 +1837,7 @@
                 <div>
                   <h4 className="font-bold text-gray-100">2. 適正重量と得意装備</h4>
                   <p className="text-sm text-gray-200">
-                    冒険者には「<span className="font-bold text-green-700">適正重量</span>」があり、合わない装備（⚠️）を渡すと威力が半減します。逆に、その職業の「<span className="font-bold text-yellow-600">得意装備（✨）</span>」を渡すと威力が1.3倍に跳ね上がります。状況確認画面で冒険者をクリックすると、適正重量と得意な装備カテゴリを確認できます。
+                    冒険者には「<span className="font-bold text-green-400">適正重量</span>」があり、合わない装備（⚠️）を渡すと威力が半減します。逆に、その職業の「<span className="font-bold text-yellow-400">得意装備（✨）</span>」を渡すと威力が1.3倍に跳ね上がります。状況確認画面で冒険者をクリックすると、適正重量と得意な装備カテゴリを確認できます。
                   </p>
                 </div>
                 <div>
@@ -1850,15 +1850,15 @@
             <section className="bg-glass-panel p-5 rounded shadow-sm border border-[#3E2723]/20">
               <h3 className="text-xl font-bold text-[#E0D0B0] border-b pb-2 mb-3">🌟 名声と好感度のメリット</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
-                  <h4 className="font-bold text-indigo-900 mb-1">名声（市場への卸し）</h4>
-                  <p className="text-xs text-indigo-800">
-                    アイテムを冒険者に売らずに「市場に卸す」と名声が上がります。名声が高まると新たな冒険者が来店したり、王室から莫大な報酬がもらえる<span className="font-bold text-red-600">特命依頼（VIPクエスト）</span>が舞い込みます。
+                <div className="bg-indigo-50 p-3 rounded border border-indigo-500/30">
+                  <h4 className="font-bold text-indigo-300 mb-1">名声（市場への卸し）</h4>
+                  <p className="text-xs text-indigo-300">
+                    アイテムを冒険者に売らずに「市場に卸す」と名声が上がります。名声が高まると新たな冒険者が来店したり、王室から莫大な報酬がもらえる<span className="font-bold text-red-400">特命依頼（VIPクエスト）</span>が舞い込みます。
                   </p>
                 </div>
-                <div className="bg-green-50 p-3 rounded border border-green-100">
-                  <h4 className="font-bold text-green-900 mb-1">好感度（適正価格での販売）</h4>
-                  <p className="text-xs text-green-800">
+                <div className="bg-green-900/30 p-3 rounded border border-green-100">
+                  <h4 className="font-bold text-green-400 mb-1">好感度（適正価格での販売）</h4>
+                  <p className="text-xs text-green-400">
                     良心的な価格で販売すると好感度が上がります。好感度が高いと<span className="font-bold">アイテムを買ってくれる予算枠</span>が増加し、探索から生還した際に、より珍しい素材を安い価格で店に卸してくれます。
                   </p>
                 </div>
@@ -1872,9 +1872,9 @@
                   <span className="font-bold text-[#E0D0B0]">ボスの撃破判定:</span> 10, 30, 50, 70, 100日目にボスが襲来します。街にいる生存冒険者全員の「総合戦闘力」の合計値がボスの戦闘力を上回っていれば撃破成功となります。<br/>
                   <span className="font-bold text-[#E0D0B0]">冒険者の生存確率:</span> 個々の冒険者が通常ダンジョンから生還できる確率は、ダンジョンの推奨戦闘力と自身の戦闘力の「割合（比率）」で計算されます。
                 </p>
-                <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
-                  <h4 className="font-bold text-yellow-800 mb-1">✨ 冒険者の覚醒</h4>
-                  <p className="text-xs text-yellow-900">
+                <div className="bg-yellow-900/30 p-3 rounded border border-yellow-200">
+                  <h4 className="font-bold text-yellow-400 mb-1">✨ 冒険者の覚醒</h4>
+                  <p className="text-xs text-yellow-400">
                     10日以上生き延びており、好感度が80以上、かつ総合戦闘力が100を超えている冒険者は、より強力な「上位職（パラディン、剣聖など）」に覚醒し、ベース能力が大幅に上昇します。
                   </p>
                 </div>
@@ -1917,15 +1917,15 @@
               <h2 className="text-2xl md:text-3xl font-serif mb-6 text-[#E0D0B0] border-b pb-4">【Day {day - 1}】 探索結果</h2>
               
               {bossReport ? (
-                <div className={`mb-6 p-4 border-2 rounded ${bossReport.success ? 'bg-yellow-50 border-yellow-400' : 'bg-red-50 border-red-500 animate-shake'}`}>
-                  <h3 className={`text-2xl font-bold mb-2 ${bossReport.success ? 'text-yellow-700' : 'text-red-700'}`}>
+                <div className={`mb-6 p-4 border-2 rounded ${bossReport.success ? 'bg-yellow-900/30 border-yellow-400' : 'bg-red-900/30 border-red-500 animate-shake'}`}>
+                  <h3 className={`text-2xl font-bold mb-2 ${bossReport.success ? 'text-yellow-400' : 'text-red-400'}`}>
                     {bossReport.success ? '🎉 ボス討伐成功！' : '💀 ボス防衛失敗...'}
                   </h3>
                   <p className="text-sm font-bold text-gray-100 mb-2">対: {bossReport.boss.name} (戦闘力:{bossReport.boss.power})</p>
                   {bossReport.success ? (
-                    <div className="text-sm text-green-700 font-bold">特別報酬: {bossReport.money}G, {bossReport.mats}</div>
+                    <div className="text-sm text-green-400 font-bold">特別報酬: {bossReport.money}G, {bossReport.mats}</div>
                   ) : (
-                    <div className="text-sm text-red-600 font-bold">街に甚大な被害が出ました。冒険者たちの装備が破損し、好感度が低下しました。</div>
+                    <div className="text-sm text-red-400 font-bold">街に甚大な被害が出ました。冒険者たちの装備が破損し、好感度が低下しました。</div>
                   )}
                 </div>
               ) : (
@@ -1935,13 +1935,13 @@
               {!bossReport && reportData.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-left">
                   {reportData.map((rd, idx) => (
-                    <div key={idx} className={`p-3 rounded border flex items-center gap-3 ${rd.isDead ? 'bg-red-50 border-red-200' : 'bg-black/40 border-gray-200'}`}>
+                    <div key={idx} className={`p-3 rounded border flex items-center gap-3 ${rd.isDead ? 'bg-red-900/30 border-red-500/30' : 'bg-black/40 border-gray-200'}`}>
                       <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white ${rd.isDead ? 'bg-gray-400' : 'bg-[#3E2723]'}`}>
                         {rd.isDead ? '✝' : <IconUser />}
                       </div>
                       <div>
                         <div className={`font-bold text-sm ${rd.isDead ? 'text-gray-400 line-through' : 'text-[#E0D0B0]'}`}>{rd.name} <span className="font-normal text-xs">({rd.class})</span></div>
-                        <div className={`text-xs italic ${rd.isDead ? 'text-red-500' : 'text-gray-300'}`}>「{rd.speech}」</div>
+                        <div className={`text-xs italic ${rd.isDead ? 'text-red-400' : 'text-gray-300'}`}>「{rd.speech}」</div>
                       </div>
                     </div>
                   ))}
@@ -1950,7 +1950,7 @@
 
               <div className="bg-black/50 p-4 rounded mb-8 text-left h-64 overflow-y-auto text-xs md:text-sm border font-mono">
                  {yesterdayLogs.map((l, i) => (
-                   <div key={i} className={`py-1.5 border-b border-gray-200 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【納税】') ? 'text-red-600 font-bold bg-red-50' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') || l.includes('【恩恵】') ? 'text-yellow-700 font-bold bg-yellow-50' : l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') || l.includes('王室御用達') ? 'text-blue-600 font-bold bg-blue-50' : 'text-gray-200'}`}>
+                   <div key={i} className={`py-1.5 border-b border-gray-200 last:border-0 ${l.includes('【悲劇】') || l.includes('【防衛失敗】') || l.includes('【納税】') ? 'text-red-400 font-bold bg-red-900/30' : l.includes('【新規来店】') || l.includes('【覚醒】') || l.includes('【成長】') || l.includes('【名声】') || l.includes('【実績') || l.includes('【ボス襲来】') || l.includes('【恩恵】') ? 'text-yellow-400 font-bold bg-yellow-900/30' : l.includes('【噂話】') || l.includes('神業') || l.includes('【ボス討伐】') || l.includes('王室御用達') ? 'text-blue-400 font-bold bg-blue-900/30' : 'text-gray-200'}`}>
                      {l}
                    </div>
                  ))}
@@ -1997,7 +1997,7 @@
               <h1 className="text-4xl md:text-5xl font-serif text-[#D4AF37] mb-8 tracking-widest border-b border-[#D4AF37] pb-4">
                 {endingId === 'bankrupt' ? 'GAME OVER' : '100日間経過'}
               </h1>
-              <h2 className="text-2xl md:text-3xl mb-4 font-bold">Ending: <span className={endingId === 'bankrupt' ? 'text-red-500' : 'text-[#D4AF37]'}>{currentEnd.title}</span></h2>
+              <h2 className="text-2xl md:text-3xl mb-4 font-bold">Ending: <span className={endingId === 'bankrupt' ? 'text-red-400' : 'text-[#D4AF37]'}>{currentEnd.title}</span></h2>
               <p className="text-base md:text-lg leading-relaxed text-gray-300 mb-8 bg-glass-panel/5 p-4 rounded">{currentEnd.desc}</p>
               
               {endingId !== 'bankrupt' && (
@@ -2011,7 +2011,7 @@
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div className="bg-black/30 p-3 rounded">
                       <div className="text-gray-400 mb-1">最終資金</div>
-                      <div className={`text-lg font-bold ${money < 0 ? 'text-red-500' : 'text-white'}`}>{money.toLocaleString()} G</div>
+                      <div className={`text-lg font-bold ${money < 0 ? 'text-red-400' : 'text-white'}`}>{money.toLocaleString()} G</div>
                     </div>
                     <div className="bg-black/30 p-3 rounded">
                       <div className="text-gray-400 mb-1">最終名声</div>
@@ -2046,7 +2046,7 @@
               )}
 
               <div className="mt-8 flex flex-col md:flex-row justify-center gap-6 pb-12">
-                <button onClick={resetGame} className={`font-bold px-8 py-3 rounded transition-all active:scale-95 text-lg ${confirmReset ? 'bg-red-600 text-white' : 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-500'}`}>
+                <button onClick={resetGame} className={`font-bold px-8 py-3 rounded transition-all active:scale-95 text-lg ${confirmReset ? 'bg-red-600 text-white' : 'bg-[#D4AF37] text-[#E0D0B0] hover:bg-yellow-900/300'}`}>
                   {confirmReset ? '本当にリセット？' : '最初からやり直す'}
                 </button>
               </div>
@@ -2072,13 +2072,13 @@
               </div>
               <div className="p-6">
                 <div className="flex justify-between items-end mb-3">
-                  <div><div className="text-sm text-gray-400 mb-1">Class</div><div className={`text-xl font-bold ${a.class !== a.baseClass ? 'text-yellow-600' : 'text-[#E0D0B0]'}`}>{a.class}</div></div>
+                  <div><div className="text-sm text-gray-400 mb-1">Class</div><div className={`text-xl font-bold ${a.class !== a.baseClass ? 'text-yellow-400' : 'text-[#E0D0B0]'}`}>{a.class}</div></div>
                   <div className="text-right"><div className="text-sm text-gray-400 mb-1">Survival / Trust</div><div className="text-base font-bold">{a.aliveDays} Days / {a.trust}</div></div>
                 </div>
                 <p className="text-sm italic mb-6 bg-glass-panel p-4 rounded border shadow-inner leading-relaxed text-gray-200">"{a.flavor}"</p>
                 <div className="bg-black/50 p-4 rounded border mb-6">
                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-300">
-                     <span className="font-bold text-[#E0D0B0]">総合戦闘力</span><span className="text-2xl font-bold text-indigo-700">{pwrInfo.total}</span>
+                     <span className="font-bold text-[#E0D0B0]">総合戦闘力</span><span className="text-2xl font-bold text-indigo-300">{pwrInfo.total}</span>
                    </div>
                    <div className="flex justify-between text-sm text-gray-300 mb-1"><span>ベース能力</span><span>{a.basePower}</span></div>
                    <div className="flex justify-between text-sm text-gray-300 mb-1"><span>適正重量</span><span className="font-bold">{WEIGHT_LABELS[optWeight]}</span></div>
@@ -2087,7 +2087,7 @@
                      <div className="text-xs text-gray-400 mb-1">得意な装備カテゴリ:</div>
                      <div className="flex flex-wrap gap-1">
                        {CLASS_DATA[a.class].fav.map(favCat => (
-                         <span key={favCat} className="text-[10px] bg-yellow-100 text-yellow-800 border border-yellow-300 px-1.5 py-0.5 rounded font-bold">
+                         <span key={favCat} className="text-[10px] bg-yellow-100 text-yellow-400 border border-yellow-300 px-1.5 py-0.5 rounded font-bold">
                            {CATEGORY_NAMES[favCat]}
                          </span>
                        ))}
@@ -2095,7 +2095,7 @@
                    </div>
 
                    {pwrInfo.bonusInfo.activeSeries && (
-                     <div className="flex justify-between text-xs mt-3 text-indigo-600 font-bold bg-indigo-50 p-1.5 rounded">
+                     <div className="flex justify-between text-xs mt-3 text-indigo-300 font-bold bg-indigo-50 p-1.5 rounded">
                        <span>セットボーナス: {SERIES_NAMES[pwrInfo.bonusInfo.activeSeries]}</span><span>x{pwrInfo.bonusInfo.multiplier}</span>
                      </div>
                    )}
@@ -2114,7 +2114,7 @@
                               <span className="font-bold truncate flex-1 px-2">{item.name}</span>
                               <div className="flex flex-col items-end w-16 flex-shrink-0">
                                 <span className="text-gray-300 font-bold">+{calcEquipPower(a.class, item).final}</span>
-                                <span className={`text-[9px] ${item.durability <= 0 ? 'text-red-500' : 'text-gray-400'}`}>耐: {item.durability}/{item.maxDurability}</span>
+                                <span className={`text-[9px] ${item.durability <= 0 ? 'text-red-400' : 'text-gray-400'}`}>耐: {item.durability}/{item.maxDurability}</span>
                               </div>
                             </>
                           ) : ( <span className="text-gray-400 flex-1 px-2">-</span> )}

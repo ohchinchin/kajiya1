@@ -10,3 +10,5 @@
 - **デプロイ**: 
   - Gitリポジトリとして初期化。
   - GitHub (`https://github.com/ohchinchin/kajiya1.git`) の `main` ブランチへ変更をPushし、GitHub Pagesによる公開を完了。
+
+- [2026-04-29] index.htmlのダークテーマ配色を改善: 視認性の悪いテキストカラー(text-indigo-900など)を明るい色(300〜400系)に置換しました。通常ダンジョンの戦闘力などの表示が見やすくなりました。
